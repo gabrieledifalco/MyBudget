@@ -1,4 +1,4 @@
-export type ProfileType = 'INDIVIDUAL' | 'FAMILY';
+export type ProfileType = "INDIVIDUAL" | "FAMILY";
 
 export interface User {
   id: string;
@@ -6,6 +6,7 @@ export interface User {
   firstName: string;
   lastName: string;
   profileType: ProfileType;
+  onboardingComplete: boolean;
 }
 
 export interface AuthResponse {

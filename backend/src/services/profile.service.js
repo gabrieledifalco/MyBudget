@@ -24,6 +24,14 @@ export async function updateUser(userId, data) {
   return publicUser(user);
 }
 
+export async function completeOnboarding(userId) {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { onboardingComplete: true },
+  });
+  return publicUser(user);
+}
+
 export function listFamilyMembers(userId) {
   return prisma.familyMember.findMany({ where: { userId } });
 }

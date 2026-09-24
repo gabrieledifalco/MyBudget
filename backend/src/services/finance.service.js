@@ -43,7 +43,7 @@ export function computeAnnualIncome({ incomes, passiveIncomes }) {
   const work = incomes.reduce(
     (sum, i) =>
       sum +
-      i.netMonthly * 12 +
+      i.netMonthly * (i.monthlyPaymentsCount ?? 12) +
       (i.thirteenthSalary ?? 0) +
       (i.fourteenthSalary ?? 0) +
       (i.annualBonus ?? 0),

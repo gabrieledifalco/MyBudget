@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 
 import * as expenseApi from "@/api/expense.api";
+import * as profileApi from "@/api/profile.api";
+import { useAuth } from "@/features/auth/AuthContext";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type {
   Expense,
@@ -21,13 +24,18 @@ const emptyForm = {
   description: "",
   kind: "VARIABLE" as ExpenseKind,
   categoryId: "",
+  memberId: "",
   amount: "",
   frequency: "MONTHLY" as Frequency,
   utility: "3",
 };
 
 export function ExpenseManager() {
+  const { user } = useAuth();
+  const { format, symbol } = useCurrency();
+  const isFamily = user?.profileType === "FAMILY";
   const { data: categories } = useFetch(expenseApi.listCategories, []);
+  const { data: familyMembers } = useFetch(profileApi.listFamilyMembers, []);
   const {
     data: expenses,
     loading,
@@ -45,6 +53,7 @@ export function ExpenseManager() {
       description: expense.description ?? "",
       kind: expense.kind,
       categoryId: expense.categoryId ?? "",
+      memberId: expense.memberId ?? "",
       amount: String(expense.amount),
       frequency: expense.frequency,
       utility: String(expense.utility),
@@ -65,6 +74,7 @@ export function ExpenseManager() {
         description: form.description || undefined,
         kind: form.kind,
         categoryId: form.categoryId || undefined,
+        memberId: isFamily && form.memberId ? form.memberId : undefined,
         amount: Number(form.amount),
         frequency: form.frequency,
         utility: Number(form.utility) as UtilityLevel,
@@ -91,7 +101,7 @@ export function ExpenseManager() {
   return (
     <>
       <div className="card">
-        <h2>{editingId ? "Modifica spesa" : "Nuova spesa"}</h2>
+        <h2>{editingId ? "Modifica uscita" : "Nuova uscita"}</h2>
         <form className="form" onSubmit={handleSubmit}>
           <div className="form-row">
             <label className="field">
@@ -144,7 +154,7 @@ export function ExpenseManager() {
 
           <div className="form-row">
             <label className="field">
-              <span>Importo (€)</span>
+              <span>Importo ({symbol})</span>
               <input
                 type="number"
                 min={0}
@@ -184,13 +194,30 @@ export function ExpenseManager() {
             </label>
           </div>
 
+          {isFamily && (
+            <label className="field">
+              <span>Imputa a</span>
+              <select
+                value={form.memberId}
+                onChange={(e) => setForm({ ...form, memberId: e.target.value })}
+              >
+                <option value="">Nucleo familiare (generica)</option>
+                {familyMembers?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.firstName} {m.lastName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <div className="list-item__actions">
             <button
               type="submit"
               className="btn btn--primary"
               disabled={submitting}
             >
-              {editingId ? "Salva modifiche" : "Aggiungi spesa"}
+              {editingId ? "Salva modifiche" : "Aggiungi uscita"}
             </button>
             {editingId && (
               <button
@@ -206,11 +233,11 @@ export function ExpenseManager() {
       </div>
 
       <div className="card">
-        <h2>Spese registrate</h2>
+        <h2>Uscite registrate</h2>
         {loading && <p className="page__hint">Caricamento…</p>}
         {error && <p className="form__error">{error}</p>}
         {expenses && expenses.length === 0 && (
-          <p className="empty-state">Nessuna spesa registrata.</p>
+          <p className="empty-state">Nessuna uscita registrata.</p>
         )}
         <div className="list">
           {expenses?.map((expense) => (
@@ -224,8 +251,10 @@ export function ExpenseManager() {
                 </span>
                 <span className="list-item__meta">
                   {expense.kind === "FIXED" ? "Fissa" : "Variabile"} ·{" "}
-                  {expense.amount} € /{" "}
+                  {format(expense.amount)} /{" "}
                   {FREQUENCY_LABELS[expense.frequency].toLowerCase()}
+                  {expense.memberId &&
+                    ` · ${familyMembers?.find((m) => m.id === expense.memberId)?.firstName ?? "membro"}`}
                 </span>
               </div>
               <div className="list-item__actions">

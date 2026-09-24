@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import * as profileApi from "@/api/profile.api";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { FamilyMember, FamilyRole } from "@/types/domain";
 
@@ -19,6 +20,7 @@ const emptyForm = {
 };
 
 export function FamilyMembersManager() {
+  const { user } = useAuth();
   const {
     data: members,
     loading,
@@ -28,6 +30,34 @@ export function FamilyMembersManager() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [suggestionApplied, setSuggestionApplied] = useState(false);
+
+  // Suggerisce il primo membro del nucleo usando i dati raccolti in registrazione.
+  useEffect(() => {
+    if (
+      user &&
+      members &&
+      members.length === 0 &&
+      !editingId &&
+      !suggestionApplied &&
+      form.firstName === "" &&
+      form.lastName === ""
+    ) {
+      setForm((f) => ({
+        ...f,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      }));
+      setSuggestionApplied(true);
+    }
+  }, [
+    user,
+    members,
+    editingId,
+    suggestionApplied,
+    form.firstName,
+    form.lastName,
+  ]);
 
   const startEdit = (member: FamilyMember) => {
     setEditingId(member.id);
@@ -69,6 +99,13 @@ export function FamilyMembersManager() {
   return (
     <div className="card">
       <h2>Nucleo familiare</h2>
+      {members && members.length === 0 && !editingId && user && (
+        <p className="page__hint">
+          Suggerimento: abbiamo precompilato il modulo con i dati della tua
+          registrazione ({user.firstName} {user.lastName}). Modifica pure se ti
+          riferisci a un altro componente della famiglia.
+        </p>
+      )}
       <form className="form" onSubmit={handleSubmit}>
         <div className="form-row">
           <label className="field">

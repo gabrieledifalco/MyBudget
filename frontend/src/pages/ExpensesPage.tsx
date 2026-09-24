@@ -4,7 +4,7 @@ import { LoanManager } from "@/features/expenses/LoanManager";
 export function ExpensesPage() {
   return (
     <section className="page">
-      <h1>Spese</h1>
+      <h1>Uscite</h1>
       <ExpenseManager />
       <LoanManager />
     </section>

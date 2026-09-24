@@ -8,7 +8,7 @@ export function listCategories() {
 export function listExpenses(userId) {
   return prisma.expense.findMany({
     where: { userId },
-    include: { category: true },
+    include: { category: true, member: true },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -16,13 +16,13 @@ export function listExpenses(userId) {
 export function createExpense(userId, data) {
   return prisma.expense.create({
     data: { ...data, userId },
-    include: { category: true },
+    include: { category: true, member: true },
   });
 }
 
 async function findOwnedExpense(userId, id) {
   const expense = await prisma.expense.findFirst({ where: { id, userId } });
-  if (!expense) throw httpError(404, "Spesa non trovata");
+  if (!expense) throw httpError(404, "Uscita non trovata");
   return expense;
 }
 
@@ -31,7 +31,7 @@ export async function updateExpense(userId, id, data) {
   return prisma.expense.update({
     where: { id },
     data,
-    include: { category: true },
+    include: { category: true, member: true },
   });
 }
 

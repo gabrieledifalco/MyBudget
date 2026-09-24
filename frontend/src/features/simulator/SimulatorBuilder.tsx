@@ -2,14 +2,14 @@ import { useState, type FormEvent } from "react";
 
 import * as expenseApi from "@/api/expense.api";
 import * as simulationApi from "@/api/simulation.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { SimulationAction, SimulationResult } from "@/types/domain";
 
 type ActionKind = SimulationAction["type"];
 
-const currency = (value: number) => `${value.toFixed(0)} €`;
-
 export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
+  const { format, symbol } = useCurrency();
   const { data: expenses } = useFetch(expenseApi.listExpenses, []);
   const [actions, setActions] = useState<SimulationAction[]>([]);
   const [actionKind, setActionKind] = useState<ActionKind>("REDUCE_EXPENSE");
@@ -52,7 +52,7 @@ export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
       return `Riduci "${expenseName ?? action.expenseId}" del ${action.percentage}%`;
     if (action.type === "REMOVE_EXPENSE")
       return `Elimina "${expenseName ?? action.expenseId}"`;
-    return `Incremento reddito di ${action.amount} €/mese`;
+    return `Incremento reddito di ${format(action.amount)}/mese`;
   };
 
   const handleRun = async () => {
@@ -91,15 +91,15 @@ export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
               value={actionKind}
               onChange={(e) => setActionKind(e.target.value as ActionKind)}
             >
-              <option value="REDUCE_EXPENSE">Riduci una spesa</option>
-              <option value="REMOVE_EXPENSE">Elimina una spesa</option>
+              <option value="REDUCE_EXPENSE">Riduci un'uscita</option>
+              <option value="REMOVE_EXPENSE">Elimina un'uscita</option>
               <option value="INCREASE_INCOME">Incremento del reddito</option>
             </select>
           </label>
 
           {actionKind !== "INCREASE_INCOME" && (
             <label className="field">
-              <span>Spesa</span>
+              <span>Uscita</span>
               <select
                 value={expenseId}
                 onChange={(e) => setExpenseId(e.target.value)}
@@ -130,7 +130,7 @@ export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
 
           {actionKind === "INCREASE_INCOME" && (
             <label className="field">
-              <span>Incremento mensile (€)</span>
+              <span>Incremento mensile ({symbol})</span>
               <input
                 type="number"
                 min={1}
@@ -179,13 +179,13 @@ export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
           <div>
             <span className="kpi-card__label">Risparmio attuale</span>
             <p className="kpi-card__value">
-              {currency(result.baseline.monthlySavings)}/mese
+              {format(result.baseline.monthlySavings)}/mese
             </p>
           </div>
           <div>
             <span className="kpi-card__label">Nuovo risparmio</span>
             <p className="kpi-card__value positive">
-              {currency(result.projected.monthlySavings)}/mese
+              {format(result.projected.monthlySavings)}/mese
             </p>
           </div>
           <div>
@@ -194,7 +194,7 @@ export function SimulatorBuilder({ onSaved }: { onSaved: () => void }) {
               className={`kpi-card__value ${result.delta.monthlySavings >= 0 ? "positive" : "negative"}`}
             >
               {result.delta.monthlySavings >= 0 ? "+" : ""}
-              {currency(result.delta.monthlySavings)}/mese
+              {format(result.delta.monthlySavings)}/mese
             </p>
           </div>
         </div>

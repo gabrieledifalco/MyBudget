@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 
 import * as incomeApi from "@/api/income.api";
+import * as profileApi from "@/api/profile.api";
+import { useAuth } from "@/features/auth/AuthContext";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { EmploymentType, Income, TaxFrequency } from "@/types/domain";
 
@@ -15,18 +18,52 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
 const emptyForm = {
   employmentType: "EMPLOYEE" as EmploymentType,
   netMonthly: "",
-  grossMonthly: "",
+  grossAnnual: "",
+  monthlyPaymentsCount: "12",
   thirteenthSalary: "",
   fourteenthSalary: "",
   annualBonus: "",
   taxRate: "",
   taxFrequency: "" as TaxFrequency | "",
   taxSetAside: "",
+  memberId: "",
 };
 
 const num = (value: string) => (value === "" ? undefined : Number(value));
 
+function IncomeHistory({ incomeId }: { incomeId: string }) {
+  const { format } = useCurrency();
+  const { data: history, loading } = useFetch(
+    () => incomeApi.getIncomeHistory(incomeId),
+    [incomeId],
+  );
+
+  if (loading) return <p className="page__hint">Caricamento storico…</p>;
+  if (!history || history.length === 0)
+    return <p className="empty-state">Nessuna variazione storicizzata.</p>;
+
+  return (
+    <div className="list" style={{ marginTop: 8 }}>
+      {history.map((entry) => (
+        <div className="list-item" key={entry.id}>
+          <span className="list-item__title">
+            {new Date(entry.recordedAt).toLocaleDateString("it-IT")}
+          </span>
+          <span className="list-item__meta">
+            Netto {format(entry.netMonthly)} · Lordo {format(entry.grossAnnual)}
+            /anno · {entry.monthlyPaymentsCount} mensilità
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function IncomeManager() {
+  const { user } = useAuth();
+  const { format, symbol } = useCurrency();
+  const isFamily = user?.profileType === "FAMILY";
+  const { data: familyMembers } = useFetch(profileApi.listFamilyMembers, []);
   const {
     data: incomes,
     loading,
@@ -36,6 +73,7 @@ export function IncomeManager() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
   const showTax =
     form.employmentType === "FREELANCER" || form.employmentType === "VAT";
 
@@ -44,13 +82,15 @@ export function IncomeManager() {
     setForm({
       employmentType: income.employmentType,
       netMonthly: String(income.netMonthly),
-      grossMonthly: String(income.grossMonthly),
+      grossAnnual: String(income.grossAnnual),
+      monthlyPaymentsCount: String(income.monthlyPaymentsCount),
       thirteenthSalary: income.thirteenthSalary?.toString() ?? "",
       fourteenthSalary: income.fourteenthSalary?.toString() ?? "",
       annualBonus: income.annualBonus?.toString() ?? "",
       taxRate: income.taxRate?.toString() ?? "",
       taxFrequency: income.taxFrequency ?? "",
       taxSetAside: income.taxSetAside?.toString() ?? "",
+      memberId: income.memberId ?? "",
     });
   };
 
@@ -66,7 +106,8 @@ export function IncomeManager() {
       const payload = {
         employmentType: form.employmentType,
         netMonthly: Number(form.netMonthly) || 0,
-        grossMonthly: Number(form.grossMonthly) || 0,
+        grossAnnual: Number(form.grossAnnual) || 0,
+        monthlyPaymentsCount: Number(form.monthlyPaymentsCount) || 12,
         thirteenthSalary: num(form.thirteenthSalary),
         fourteenthSalary: num(form.fourteenthSalary),
         annualBonus: num(form.annualBonus),
@@ -74,6 +115,7 @@ export function IncomeManager() {
         taxFrequency:
           showTax && form.taxFrequency ? form.taxFrequency : undefined,
         taxSetAside: showTax ? num(form.taxSetAside) : undefined,
+        memberId: isFamily && form.memberId ? form.memberId : undefined,
       };
 
       if (editingId) {
@@ -119,7 +161,7 @@ export function IncomeManager() {
               </select>
             </label>
             <label className="field">
-              <span>Reddito netto mensile (€)</span>
+              <span>Reddito netto mensile</span>
               <input
                 type="number"
                 min={0}
@@ -132,14 +174,27 @@ export function IncomeManager() {
               />
             </label>
             <label className="field">
-              <span>Reddito lordo mensile (€)</span>
+              <span>Reddito lordo annuale</span>
               <input
                 type="number"
                 min={0}
                 step="0.01"
-                value={form.grossMonthly}
+                value={form.grossAnnual}
                 onChange={(e) =>
-                  setForm({ ...form, grossMonthly: e.target.value })
+                  setForm({ ...form, grossAnnual: e.target.value })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>Numero mensilità annue</span>
+              <input
+                type="number"
+                min={1}
+                max={14}
+                step="1"
+                value={form.monthlyPaymentsCount}
+                onChange={(e) =>
+                  setForm({ ...form, monthlyPaymentsCount: e.target.value })
                 }
               />
             </label>
@@ -147,7 +202,7 @@ export function IncomeManager() {
 
           <div className="form-row">
             <label className="field">
-              <span>Tredicesima (€)</span>
+              <span>Tredicesima ({symbol})</span>
               <input
                 type="number"
                 min={0}
@@ -158,7 +213,7 @@ export function IncomeManager() {
               />
             </label>
             <label className="field">
-              <span>Quattordicesima (€)</span>
+              <span>Quattordicesima ({symbol})</span>
               <input
                 type="number"
                 min={0}
@@ -169,7 +224,7 @@ export function IncomeManager() {
               />
             </label>
             <label className="field">
-              <span>Bonus annuali (€)</span>
+              <span>Bonus annuali ({symbol})</span>
               <input
                 type="number"
                 min={0}
@@ -213,7 +268,7 @@ export function IncomeManager() {
                 </select>
               </label>
               <label className="field">
-                <span>Importo accantonato (€)</span>
+                <span>Importo accantonato ({symbol})</span>
                 <input
                   type="number"
                   min={0}
@@ -224,6 +279,23 @@ export function IncomeManager() {
                 />
               </label>
             </div>
+          )}
+
+          {isFamily && (
+            <label className="field">
+              <span>Imputa a</span>
+              <select
+                value={form.memberId}
+                onChange={(e) => setForm({ ...form, memberId: e.target.value })}
+              >
+                <option value="">Nucleo familiare (generica)</option>
+                {familyMembers?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.firstName} {m.lastName}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
 
           <div className="list-item__actions">
@@ -256,33 +328,52 @@ export function IncomeManager() {
         )}
         <div className="list">
           {incomes?.map((income) => (
-            <div className="list-item" key={income.id}>
-              <div className="list-item__main">
-                <span className="list-item__title">
-                  {EMPLOYMENT_LABELS[income.employmentType]}
-                </span>
-                <span className="list-item__meta">
-                  Netto {income.netMonthly} €/mese · Lordo {income.grossMonthly}{" "}
-                  €/mese
-                  {income.taxRate ? ` · Tasse ${income.taxRate}%` : ""}
-                </span>
+            <div className="list-item-group" key={income.id}>
+              <div className="list-item">
+                <div className="list-item__main">
+                  <span className="list-item__title">
+                    {EMPLOYMENT_LABELS[income.employmentType]}
+                  </span>
+                  <span className="list-item__meta">
+                    Netto {format(income.netMonthly)}/mese · Lordo{" "}
+                    {format(income.grossAnnual)}/anno ·{" "}
+                    {income.monthlyPaymentsCount} mensilità
+                    {income.taxRate ? ` · Tasse ${income.taxRate}%` : ""}
+                    {income.memberId &&
+                      ` · ${familyMembers?.find((m) => m.id === income.memberId)?.firstName ?? "membro"}`}
+                  </span>
+                </div>
+                <div className="list-item__actions">
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() =>
+                      setHistoryOpenId(
+                        historyOpenId === income.id ? null : income.id,
+                      )
+                    }
+                  >
+                    Storico
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => startEdit(income)}
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--danger btn--sm"
+                    onClick={() => handleDelete(income.id)}
+                  >
+                    Elimina
+                  </button>
+                </div>
               </div>
-              <div className="list-item__actions">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => startEdit(income)}
-                >
-                  Modifica
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
-                  onClick={() => handleDelete(income.id)}
-                >
-                  Elimina
-                </button>
-              </div>
+              {historyOpenId === income.id && (
+                <IncomeHistory incomeId={income.id} />
+              )}
             </div>
           ))}
         </div>

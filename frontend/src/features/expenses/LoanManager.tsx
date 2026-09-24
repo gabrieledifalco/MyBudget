@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import * as expenseApi from "@/api/expense.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { Loan } from "@/types/domain";
 
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export function LoanManager() {
+  const { format, symbol } = useCurrency();
   const {
     data: loans,
     loading,
@@ -86,7 +88,7 @@ export function LoanManager() {
             />
           </label>
           <label className="field">
-            <span>Importo totale (€)</span>
+            <span>Importo totale ({symbol})</span>
             <input
               type="number"
               min={0}
@@ -98,7 +100,7 @@ export function LoanManager() {
             />
           </label>
           <label className="field">
-            <span>Rata mensile (€)</span>
+            <span>Rata mensile ({symbol})</span>
             <input
               type="number"
               min={0}
@@ -171,8 +173,9 @@ export function LoanManager() {
             <div className="list-item__main">
               <span className="list-item__title">{loan.name}</span>
               <span className="list-item__meta">
-                Rata {loan.monthlyPayment} €/mese · Totale {loan.totalAmount} €
-                · {loan.startDate.slice(0, 10)} → {loan.endDate.slice(0, 10)}
+                Rata {format(loan.monthlyPayment)}/mese · Totale{" "}
+                {format(loan.totalAmount)} · {loan.startDate.slice(0, 10)} →{" "}
+                {loan.endDate.slice(0, 10)}
               </span>
             </div>
             <div className="list-item__actions">

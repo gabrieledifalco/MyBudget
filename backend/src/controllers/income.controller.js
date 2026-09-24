@@ -23,3 +23,7 @@ export const remove = asyncHandler(async (req, res) => {
   await incomeService.deleteIncome(req.user.id, req.params.id);
   res.status(204).send();
 });
+
+export const getHistory = asyncHandler(async (req, res) => {
+  res.json(await incomeService.getIncomeHistory(req.user.id, req.params.id));
+});

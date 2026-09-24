@@ -45,6 +45,7 @@ export interface Expense {
   frequency: Frequency;
   utility: UtilityLevel;
   categoryId?: string;
+  memberId?: string;
 }
 
 export interface Loan {
@@ -94,7 +95,8 @@ export interface Income {
   id: string;
   employmentType: EmploymentType;
   netMonthly: number;
-  grossMonthly: number;
+  grossAnnual: number;
+  monthlyPaymentsCount: number;
   thirteenthSalary?: number;
   fourteenthSalary?: number;
   annualBonus?: number;
@@ -102,6 +104,17 @@ export interface Income {
   taxFrequency?: TaxFrequency;
   taxSetAside?: number;
   memberId?: string;
+}
+
+export interface IncomeHistoryEntry {
+  id: string;
+  netMonthly: number;
+  grossAnnual: number;
+  monthlyPaymentsCount: number;
+  thirteenthSalary?: number;
+  fourteenthSalary?: number;
+  annualBonus?: number;
+  recordedAt: string;
 }
 
 export interface Kpi {

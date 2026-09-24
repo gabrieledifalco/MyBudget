@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import * as profileApi from "@/api/profile.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { Frequency, PassiveIncomeType } from "@/types/domain";
 
@@ -22,6 +23,7 @@ const emptyForm = {
 };
 
 export function PassiveIncomeManager() {
+  const { format, symbol } = useCurrency();
   const {
     data: items,
     loading,
@@ -88,7 +90,7 @@ export function PassiveIncomeManager() {
 
         <div className="form-row">
           <label className="field">
-            <span>Importo (€)</span>
+            <span>Importo ({symbol})</span>
             <input
               type="number"
               min={0}
@@ -143,7 +145,7 @@ export function PassiveIncomeManager() {
             <div className="list-item__main">
               <span className="list-item__title">{item.description}</span>
               <span className="list-item__meta">
-                {TYPE_LABELS[item.type]} · {item.amount} € · dal{" "}
+                {TYPE_LABELS[item.type]} · {format(item.amount)} · dal{" "}
                 {item.startDate.slice(0, 10)}
               </span>
             </div>

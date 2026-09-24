@@ -17,6 +17,7 @@ model User {
   firstName    String
   lastName     String
   profileType  String   @default("INDIVIDUAL") // INDIVIDUAL | FAMILY
+  onboardingComplete Boolean @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -52,6 +53,7 @@ model FamilyMember {
   producesIncome Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
 
   @@index([userId])
 }
@@ -73,7 +75,8 @@ model Income {
   userId            String
   employmentType    String // EMPLOYEE | FREELANCER | VAT | RETIRED | OTHER
   netMonthly        Float   @default(0)
-  grossMonthly      Float   @default(0)
+  grossAnnual       Float   @default(0)
+  monthlyPaymentsCount Int  @default(12) // numero mensilità annue
   thirteenthSalary  Float?
   fourteenthSalary  Float?
   annualBonus       Float?
@@ -84,9 +87,27 @@ model Income {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history IncomeHistory[]
 
   @@index([userId])
+}
+
+// Storico delle variazioni di reddito (README: "tutte le variazioni devono essere storicizzate").
+model IncomeHistory {
+  id               String   @id @default(cuid())
+  incomeId         String
+  netMonthly       Float
+  grossAnnual      Float
+  monthlyPaymentsCount Int @default(12)
+  thirteenthSalary Float?
+  fourteenthSalary Float?
+  annualBonus      Float?
+  recordedAt       DateTime @default(now())
+
+  income Income @relation(fields: [incomeId], references: [id], onDelete: Cascade)
+
+  @@index([incomeId])
 }
 
 model PassiveIncome {
@@ -117,6 +138,7 @@ model Expense {
   id          String   @id @default(cuid())
   userId      String
   categoryId  String?
+  memberId    String? // opzionale: uscita imputata a un singolo membro del nucleo (altrimenti generica/familiare)
   name        String
   description String?
   kind        String // FIXED | VARIABLE
@@ -128,11 +150,13 @@ model Expense {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id])
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category?     @relation(fields: [categoryId], references: [id])
+  member   FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([categoryId])
+  @@index([memberId])
 }
 
 model Loan {

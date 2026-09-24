@@ -1,8 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppLayout } from "./components/layout/AppLayout";
+import { OnboardingGate } from "./components/layout/OnboardingGate";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
+import { OnboardingPage } from "./pages/OnboardingPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { IncomePage } from "./pages/IncomePage";
 import { ExpensesPage } from "./pages/ExpensesPage";
@@ -15,9 +17,19 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route
+        path="/onboarding"
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        element={
+          <ProtectedRoute>
+            <OnboardingGate>
+              <AppLayout />
+            </OnboardingGate>
           </ProtectedRoute>
         }
       >
@@ -25,7 +37,7 @@ export function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profilo" element={<ProfilePage />} />
         <Route path="/entrate" element={<IncomePage />} />
-        <Route path="/spese" element={<ExpensesPage />} />
+        <Route path="/uscite" element={<ExpensesPage />} />
         <Route path="/overview" element={<InsightsPage />} />
         <Route path="/simulatore" element={<SimulatorPage />} />
       </Route>

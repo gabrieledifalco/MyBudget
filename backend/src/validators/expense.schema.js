@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const expenseSchema = z.object({
   categoryId: z.string().optional(),
+  memberId: z.string().optional(),
   name: z.string().min(1),
   description: z.string().optional(),
   kind: z.enum(["FIXED", "VARIABLE"]),

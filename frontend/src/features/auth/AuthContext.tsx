@@ -17,6 +17,7 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -52,6 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout: () => {
         authApi.logout();
         setUser(null);
+      },
+      refreshUser: async () => {
+        setUser(await authApi.me());
       },
     }),
     [user, loading],

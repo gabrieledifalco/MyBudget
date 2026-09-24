@@ -19,6 +19,11 @@ export async function updateProfile(
   return data;
 }
 
+export async function completeOnboarding(): Promise<User> {
+  const { data } = await api.post<User>("/profile/onboarding/complete");
+  return data;
+}
+
 export async function listFamilyMembers(): Promise<FamilyMember[]> {
   const { data } = await api.get<FamilyMember[]>("/profile/family-members");
   return data;

@@ -10,6 +10,10 @@ profileRouter.use(requireAuth);
 
 profileRouter.get("/", profileController.getProfile);
 profileRouter.patch("/", profileController.updateProfile);
+profileRouter.post(
+  "/onboarding/complete",
+  profileController.completeOnboarding,
+);
 
 profileRouter.get("/family-members", profileController.listFamilyMembers);
 profileRouter.post("/family-members", profileController.createFamilyMember);

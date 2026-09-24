@@ -12,3 +12,4 @@ incomeRouter.get("/", incomeController.list);
 incomeRouter.post("/", incomeController.create);
 incomeRouter.patch("/:id", incomeController.update);
 incomeRouter.delete("/:id", incomeController.remove);
+incomeRouter.get("/:id/history", incomeController.getHistory);

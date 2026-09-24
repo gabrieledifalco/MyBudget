@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import * as profileApi from "@/api/profile.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { HousingType } from "@/types/domain";
 
 export function HousingForm() {
+  const { symbol } = useCurrency();
   const { data: housing, loading, error } = useFetch(profileApi.getHousing, []);
   const [type, setType] = useState<HousingType>("RENT");
   const [propertyValue, setPropertyValue] = useState("");
@@ -61,7 +63,7 @@ export function HousingForm() {
 
         {type === "OWNED" && (
           <label className="field">
-            <span>Valore immobile (€)</span>
+            <span>Valore immobile ({symbol})</span>
             <input
               type="number"
               min={0}
@@ -74,7 +76,7 @@ export function HousingForm() {
         {type === "MORTGAGE" && (
           <div className="form-row">
             <label className="field">
-              <span>Valore immobile (€)</span>
+              <span>Valore immobile ({symbol})</span>
               <input
                 type="number"
                 min={0}
@@ -83,7 +85,7 @@ export function HousingForm() {
               />
             </label>
             <label className="field">
-              <span>Rata mutuo (€/mese)</span>
+              <span>Rata mutuo ({symbol}/mese)</span>
               <input
                 type="number"
                 min={0}
@@ -105,7 +107,7 @@ export function HousingForm() {
 
         {type === "RENT" && (
           <label className="field">
-            <span>Canone affitto (€/mese)</span>
+            <span>Canone affitto ({symbol}/mese)</span>
             <input
               type="number"
               min={0}

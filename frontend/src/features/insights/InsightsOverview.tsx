@@ -1,4 +1,5 @@
 import * as insightsApi from "@/api/insights.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { FinancialStability } from "@/types/domain";
 
@@ -10,9 +11,9 @@ const STABILITY_LABELS: Record<FinancialStability, string> = {
 };
 
 const percent = (value: number) => `${(value * 100).toFixed(0)}%`;
-const currency = (value: number) => `${value.toFixed(0)} €`;
 
 export function InsightsOverview() {
+  const { format } = useCurrency();
   const analysis = useFetch(insightsApi.getAnalysis, []);
   const health = useFetch(insightsApi.getHealthScore, []);
   const suggestions = useFetch(insightsApi.getSuggestions, []);
@@ -43,17 +44,19 @@ export function InsightsOverview() {
             <div>
               <span className="kpi-card__label">Risparmio annuo</span>
               <p className="kpi-card__value">
-                {currency(analysis.data.savingsAmount)}
+                {format(analysis.data.savingsAmount)}
               </p>
             </div>
             <div>
-              <span className="kpi-card__label">Incidenza spese fisse</span>
+              <span className="kpi-card__label">Incidenza uscite fisse</span>
               <p className="kpi-card__value">
                 {percent(analysis.data.fixedExpenseIncidence)}
               </p>
             </div>
             <div>
-              <span className="kpi-card__label">Incidenza spese variabili</span>
+              <span className="kpi-card__label">
+                Incidenza uscite variabili
+              </span>
               <p className="kpi-card__value">
                 {percent(analysis.data.variableExpenseIncidence)}
               </p>

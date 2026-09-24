@@ -22,7 +22,7 @@ export async function runSimulation(userId, { actions }) {
         (e) => e.id === action.expenseId,
       );
       if (!expense)
-        throw httpError(404, `Spesa ${action.expenseId} non trovata`);
+        throw httpError(404, `Uscita ${action.expenseId} non trovata`);
 
       const yearly = toYearly(expense.amount, expense.frequency);
       const reduction =

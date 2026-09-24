@@ -1,30 +1,30 @@
 import * as dashboardApi from "@/api/dashboard.api";
 import { DistributionChart } from "@/components/charts/DistributionChart";
 import { TrendChart } from "@/components/charts/TrendChart";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type { Kpi } from "@/types/domain";
 
-const currency = (value: number) => `${value.toFixed(0)} €`;
-
 function KpiCard({ label, kpi }: { label: string; kpi: Kpi }) {
+  const { format } = useCurrency();
   return (
     <div className="card">
       <span className="kpi-card__label">{label}</span>
       <div className="card-grid">
         <div>
           <span className="kpi-card__label">Entrate</span>
-          <p className="kpi-card__value positive">{currency(kpi.income)}</p>
+          <p className="kpi-card__value positive">{format(kpi.income)}</p>
         </div>
         <div>
           <span className="kpi-card__label">Uscite</span>
-          <p className="kpi-card__value negative">{currency(kpi.expenses)}</p>
+          <p className="kpi-card__value negative">{format(kpi.expenses)}</p>
         </div>
         <div>
           <span className="kpi-card__label">Saldo</span>
           <p
             className={`kpi-card__value ${kpi.balance >= 0 ? "positive" : "negative"}`}
           >
-            {currency(kpi.balance)}
+            {format(kpi.balance)}
           </p>
         </div>
       </div>
@@ -56,7 +56,7 @@ export function DashboardPage() {
       </div>
 
       <div className="card">
-        <h2>Distribuzione spese per categoria</h2>
+        <h2>Distribuzione uscite per categoria</h2>
         {distribution.data && <DistributionChart data={distribution.data} />}
       </div>
     </section>

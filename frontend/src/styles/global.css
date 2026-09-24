@@ -317,6 +317,11 @@ body {
   max-width: 380px;
 }
 
+.card--onboarding {
+  width: 100%;
+  max-width: 640px;
+}
+
 .suggestion {
   border-left: 3px solid var(--color-accent);
   padding: 8px 12px;

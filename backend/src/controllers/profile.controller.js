@@ -18,6 +18,10 @@ export const updateProfile = asyncHandler(async (req, res) => {
   res.json(await profileService.updateUser(req.user.id, data));
 });
 
+export const completeOnboarding = asyncHandler(async (req, res) => {
+  res.json(await profileService.completeOnboarding(req.user.id));
+});
+
 export const listFamilyMembers = asyncHandler(async (req, res) => {
   res.json(await profileService.listFamilyMembers(req.user.id));
 });

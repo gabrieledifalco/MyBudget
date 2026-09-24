@@ -1,9 +1,9 @@
 import * as simulationApi from "@/api/simulation.api";
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 
-const currency = (value: number) => `${value.toFixed(0)} €`;
-
 export function SimulationHistory({ reloadKey }: { reloadKey: number }) {
+  const { format } = useCurrency();
   const {
     data: simulations,
     loading,
@@ -30,9 +30,9 @@ export function SimulationHistory({ reloadKey }: { reloadKey: number }) {
             <div className="list-item__main">
               <span className="list-item__title">{sim.name}</span>
               <span className="list-item__meta">
-                Nuovo risparmio {currency(sim.result.projected.monthlySavings)}
+                Nuovo risparmio {format(sim.result.projected.monthlySavings)}
                 /mese ({sim.result.delta.monthlySavings >= 0 ? "+" : ""}
-                {currency(sim.result.delta.monthlySavings)})
+                {format(sim.result.delta.monthlySavings)})
               </span>
             </div>
             <div className="list-item__actions">

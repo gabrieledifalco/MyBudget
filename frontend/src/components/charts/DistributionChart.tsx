@@ -7,6 +7,7 @@ import {
   Tooltip,
 } from "recharts";
 
+import { useCurrency } from "@/features/settings/CurrencyContext";
 import type { DistributionSlice } from "@/types/domain";
 
 const COLORS: Record<string, string> = {
@@ -30,8 +31,9 @@ const LABELS: Record<string, string> = {
 };
 
 export function DistributionChart({ data }: { data: DistributionSlice[] }) {
+  const { format } = useCurrency();
   if (data.length === 0)
-    return <p className="empty-state">Nessuna spesa registrata.</p>;
+    return <p className="empty-state">Nessuna uscita registrata.</p>;
 
   const chartData = data.map((slice) => ({
     ...slice,
@@ -62,7 +64,7 @@ export function DistributionChart({ data }: { data: DistributionSlice[] }) {
             border: "1px solid #ffffff1f",
             borderRadius: 8,
           }}
-          formatter={(value: number) => `${value.toFixed(0)} €`}
+          formatter={(value: number) => format(value)}
         />
         <Legend />
       </PieChart>
