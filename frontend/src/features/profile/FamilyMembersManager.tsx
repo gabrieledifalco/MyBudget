@@ -1,11 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type DragEvent, type FormEvent } from "react";
 
+import * as expenseApi from "@/api/expense.api";
 import * as profileApi from "@/api/profile.api";
 import { useAuth } from "@/features/auth/AuthContext";
+import { PersonalHabits } from "@/features/profile/PersonalHabits";
 import { useFetch } from "@/hooks/useFetch";
 import type { FamilyMember, FamilyRole } from "@/types/domain";
 
 const ROLE_LABELS: Record<FamilyRole, string> = {
+  SELF: "Io",
   SPOUSE: "Coniuge",
   CHILD: "Figlio",
   PARENT: "Genitore",
@@ -30,34 +33,41 @@ export function FamilyMembersManager() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [suggestionApplied, setSuggestionApplied] = useState(false);
+  const [autoAddAttempted, setAutoAddAttempted] = useState(false);
+  const [autoAdded, setAutoAdded] = useState(false);
+  const [orderedMembers, setOrderedMembers] = useState<FamilyMember[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [habitsOpenId, setHabitsOpenId] = useState<string | null>(null);
+  const { data: categories } = useFetch(expenseApi.listCategories, []);
+  const { data: expenses, reload: reloadExpenses } = useFetch(
+    expenseApi.listExpenses,
+    [],
+  );
 
-  // Suggerisce il primo membro del nucleo usando i dati raccolti in registrazione.
   useEffect(() => {
-    if (
-      user &&
-      members &&
-      members.length === 0 &&
-      !editingId &&
-      !suggestionApplied &&
-      form.firstName === "" &&
-      form.lastName === ""
-    ) {
-      setForm((f) => ({
-        ...f,
+    if (members) setOrderedMembers(members);
+  }, [members]);
+
+  // Il primo membro del nucleo è sempre chi si è registrato: lo aggiungiamo in
+  // automatico usando i dati raccolti in fase di registrazione, senza chiedere
+  // conferma (è palese che sia lui/lei ad aver installato l'app).
+  useEffect(() => {
+    if (!user || !members || loading || autoAddAttempted) return;
+    if (members.length > 0) return;
+
+    setAutoAddAttempted(true);
+    profileApi
+      .createFamilyMember({
         firstName: user.firstName,
         lastName: user.lastName,
-      }));
-      setSuggestionApplied(true);
-    }
-  }, [
-    user,
-    members,
-    editingId,
-    suggestionApplied,
-    form.firstName,
-    form.lastName,
-  ]);
+        role: "SELF",
+        producesIncome: true,
+      })
+      .then(() => {
+        setAutoAdded(true);
+        reload();
+      });
+  }, [user, members, loading, autoAddAttempted, reload]);
 
   const startEdit = (member: FamilyMember) => {
     setEditingId(member.id);
@@ -96,14 +106,32 @@ export function FamilyMembersManager() {
     reload();
   };
 
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => e.preventDefault();
+
+  const handleDrop = (targetId: string) => {
+    if (!draggedId || draggedId === targetId) return;
+    const current = [...orderedMembers];
+    const fromIndex = current.findIndex((m) => m.id === draggedId);
+    const toIndex = current.findIndex((m) => m.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = current.splice(fromIndex, 1);
+    current.splice(toIndex, 0, moved);
+    setOrderedMembers(current);
+    setDraggedId(null);
+    profileApi
+      .reorderFamilyMembers(current.map((m) => m.id))
+      .then(() => reload());
+  };
+
   return (
     <div className="card">
       <h2>Nucleo familiare</h2>
-      {members && members.length === 0 && !editingId && user && (
+      {autoAdded && user && (
         <p className="page__hint">
-          Suggerimento: abbiamo precompilato il modulo con i dati della tua
-          registrazione ({user.firstName} {user.lastName}). Modifica pure se ti
-          riferisci a un altro componente della famiglia.
+          Ti abbiamo aggiunto automaticamente come primo membro del nucleo
+          familiare ({user.firstName} {user.lastName}), usando i dati della tua
+          registrazione. Puoi modificarne il ruolo o rimuoverlo qui sotto.
         </p>
       )}
       <form className="form" onSubmit={handleSubmit}>
@@ -177,34 +205,65 @@ export function FamilyMembersManager() {
       {members && members.length === 0 && (
         <p className="empty-state">Nessun membro registrato.</p>
       )}
+      {members && members.length > 1 && (
+        <p className="page__hint">Trascina i membri per riordinarli.</p>
+      )}
       <div className="list">
-        {members?.map((member) => (
-          <div className="list-item" key={member.id}>
-            <div className="list-item__main">
-              <span className="list-item__title">
-                {member.firstName} {member.lastName}
-              </span>
-              <span className="list-item__meta">
-                {ROLE_LABELS[member.role]}{" "}
-                {member.producesIncome ? "· Produce reddito" : ""}
-              </span>
+        {orderedMembers.map((member) => (
+          <div className="list-item-group" key={member.id}>
+            <div
+              className="list-item"
+              draggable
+              onDragStart={() => setDraggedId(member.id)}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(member.id)}
+              style={{ cursor: "grab" }}
+            >
+              <div className="list-item__main">
+                <span className="list-item__title">
+                  ⋮⋮ {member.firstName} {member.lastName}
+                </span>
+                <span className="list-item__meta">
+                  {ROLE_LABELS[member.role]}{" "}
+                  {member.producesIncome ? "· Produce reddito" : ""}
+                </span>
+              </div>
+              <div className="list-item__actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() =>
+                    setHabitsOpenId(
+                      habitsOpenId === member.id ? null : member.id,
+                    )
+                  }
+                >
+                  Spese personali
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => startEdit(member)}
+                >
+                  Modifica
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--danger btn--sm"
+                  onClick={() => handleDelete(member.id)}
+                >
+                  Rimuovi
+                </button>
+              </div>
             </div>
-            <div className="list-item__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => startEdit(member)}
-              >
-                Modifica
-              </button>
-              <button
-                type="button"
-                className="btn btn--danger btn--sm"
-                onClick={() => handleDelete(member.id)}
-              >
-                Rimuovi
-              </button>
-            </div>
+            {habitsOpenId === member.id && categories && expenses && (
+              <PersonalHabits
+                memberId={member.id}
+                categories={categories}
+                expenses={expenses}
+                onChange={reloadExpenses}
+              />
+            )}
           </div>
         ))}
       </div>

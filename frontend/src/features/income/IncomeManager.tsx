@@ -76,6 +76,9 @@ export function IncomeManager() {
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
   const showTax =
     form.employmentType === "FREELANCER" || form.employmentType === "VAT";
+  const monthlyPaymentsCount = Number(form.monthlyPaymentsCount) || 12;
+  const showThirteenth = monthlyPaymentsCount >= 13;
+  const showFourteenth = monthlyPaymentsCount >= 14;
 
   const startEdit = (income: Income) => {
     setEditingId(income.id);
@@ -108,8 +111,12 @@ export function IncomeManager() {
         netMonthly: Number(form.netMonthly) || 0,
         grossAnnual: Number(form.grossAnnual) || 0,
         monthlyPaymentsCount: Number(form.monthlyPaymentsCount) || 12,
-        thirteenthSalary: num(form.thirteenthSalary),
-        fourteenthSalary: num(form.fourteenthSalary),
+        thirteenthSalary: showThirteenth
+          ? num(form.thirteenthSalary)
+          : undefined,
+        fourteenthSalary: showFourteenth
+          ? num(form.fourteenthSalary)
+          : undefined,
         annualBonus: num(form.annualBonus),
         taxRate: showTax ? num(form.taxRate) : undefined,
         taxFrequency:
@@ -201,28 +208,32 @@ export function IncomeManager() {
           </div>
 
           <div className="form-row">
-            <label className="field">
-              <span>Tredicesima ({symbol})</span>
-              <input
-                type="number"
-                min={0}
-                value={form.thirteenthSalary}
-                onChange={(e) =>
-                  setForm({ ...form, thirteenthSalary: e.target.value })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Quattordicesima ({symbol})</span>
-              <input
-                type="number"
-                min={0}
-                value={form.fourteenthSalary}
-                onChange={(e) =>
-                  setForm({ ...form, fourteenthSalary: e.target.value })
-                }
-              />
-            </label>
+            {showThirteenth && (
+              <label className="field">
+                <span>Tredicesima ({symbol})</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.thirteenthSalary}
+                  onChange={(e) =>
+                    setForm({ ...form, thirteenthSalary: e.target.value })
+                  }
+                />
+              </label>
+            )}
+            {showFourteenth && (
+              <label className="field">
+                <span>Quattordicesima ({symbol})</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.fourteenthSalary}
+                  onChange={(e) =>
+                    setForm({ ...form, fourteenthSalary: e.target.value })
+                  }
+                />
+              </label>
+            )}
             <label className="field">
               <span>Bonus annuali ({symbol})</span>
               <input

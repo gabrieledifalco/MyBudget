@@ -51,6 +51,7 @@ model FamilyMember {
   lastName      String
   role          String // SPOUSE | CHILD | PARENT | OTHER
   producesIncome Boolean @default(false)
+  order         Int     @default(0) // per il riordino manuale (drag & drop) nel nucleo
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses Expense[]

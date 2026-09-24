@@ -30,11 +30,21 @@ export async function listFamilyMembers(): Promise<FamilyMember[]> {
 }
 
 export async function createFamilyMember(
-  payload: Omit<FamilyMember, "id">,
+  payload: Omit<FamilyMember, "id" | "order">,
 ): Promise<FamilyMember> {
   const { data } = await api.post<FamilyMember>(
     "/profile/family-members",
     payload,
+  );
+  return data;
+}
+
+export async function reorderFamilyMembers(
+  orderedIds: string[],
+): Promise<FamilyMember[]> {
+  const { data } = await api.patch<FamilyMember[]>(
+    "/profile/family-members/reorder",
+    { orderedIds },
   );
   return data;
 }

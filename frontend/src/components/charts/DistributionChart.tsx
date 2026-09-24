@@ -17,6 +17,7 @@ const COLORS: Record<string, string> = {
   FAMILY: "#f97316",
   INVESTMENT: "#a78bfa",
   LEISURE: "#f87171",
+  PERSONAL: "#e879f9",
   OTHER: "#a2a8c3",
 };
 
@@ -27,6 +28,7 @@ const LABELS: Record<string, string> = {
   FAMILY: "Famiglia",
   INVESTMENT: "Investimenti",
   LEISURE: "Tempo libero",
+  PERSONAL: "Abitudini personali",
   OTHER: "Altro",
 };
 

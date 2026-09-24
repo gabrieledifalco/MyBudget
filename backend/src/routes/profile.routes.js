@@ -18,6 +18,10 @@ profileRouter.post(
 profileRouter.get("/family-members", profileController.listFamilyMembers);
 profileRouter.post("/family-members", profileController.createFamilyMember);
 profileRouter.patch(
+  "/family-members/reorder",
+  profileController.reorderFamilyMembers,
+);
+profileRouter.patch(
   "/family-members/:id",
   profileController.updateFamilyMember,
 );

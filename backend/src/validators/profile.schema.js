@@ -9,11 +9,15 @@ export const updateProfileSchema = z.object({
 export const familyMemberSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  role: z.enum(["SPOUSE", "CHILD", "PARENT", "OTHER"]),
+  role: z.enum(["SELF", "SPOUSE", "CHILD", "PARENT", "OTHER"]),
   producesIncome: z.boolean().default(false),
 });
 
 export const updateFamilyMemberSchema = familyMemberSchema.partial();
+
+export const reorderFamilyMembersSchema = z.object({
+  orderedIds: z.array(z.string()).min(1),
+});
 
 export const housingSchema = z.object({
   type: z.enum(["OWNED", "MORTGAGE", "RENT"]),

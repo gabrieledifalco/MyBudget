@@ -9,8 +9,9 @@ export type MacroArea =
   | "FAMILY"
   | "INVESTMENT"
   | "LEISURE"
+  | "PERSONAL"
   | "OTHER";
-export type FamilyRole = "SPOUSE" | "CHILD" | "PARENT" | "OTHER";
+export type FamilyRole = "SELF" | "SPOUSE" | "CHILD" | "PARENT" | "OTHER";
 export type HousingType = "OWNED" | "MORTGAGE" | "RENT";
 export type EmploymentType =
   | "EMPLOYEE"
@@ -64,6 +65,7 @@ export interface FamilyMember {
   lastName: string;
   role: FamilyRole;
   producesIncome: boolean;
+  order: number;
 }
 
 export interface Housing {

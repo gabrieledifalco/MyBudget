@@ -3,6 +3,7 @@ import {
   updateProfileSchema,
   familyMemberSchema,
   updateFamilyMemberSchema,
+  reorderFamilyMembersSchema,
   housingSchema,
   passiveIncomeSchema,
   updatePassiveIncomeSchema,
@@ -43,6 +44,11 @@ export const updateFamilyMember = asyncHandler(async (req, res) => {
 export const deleteFamilyMember = asyncHandler(async (req, res) => {
   await profileService.deleteFamilyMember(req.user.id, req.params.id);
   res.status(204).send();
+});
+
+export const reorderFamilyMembers = asyncHandler(async (req, res) => {
+  const { orderedIds } = reorderFamilyMembersSchema.parse(req.body);
+  res.json(await profileService.reorderFamilyMembers(req.user.id, orderedIds));
 });
 
 export const getHousing = asyncHandler(async (req, res) => {

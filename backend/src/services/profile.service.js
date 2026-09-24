@@ -9,7 +9,10 @@ function publicUser(user) {
 export async function getFullProfile(userId) {
   const [user, familyMembers, housing, passiveIncomes] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
-    prisma.familyMember.findMany({ where: { userId } }),
+    prisma.familyMember.findMany({
+      where: { userId },
+      orderBy: { order: "asc" },
+    }),
     prisma.housing.findUnique({ where: { userId } }),
     prisma.passiveIncome.findMany({ where: { userId } }),
   ]);
@@ -33,11 +36,39 @@ export async function completeOnboarding(userId) {
 }
 
 export function listFamilyMembers(userId) {
-  return prisma.familyMember.findMany({ where: { userId } });
+  return prisma.familyMember.findMany({
+    where: { userId },
+    orderBy: { order: "asc" },
+  });
 }
 
-export function createFamilyMember(userId, data) {
-  return prisma.familyMember.create({ data: { ...data, userId } });
+export async function createFamilyMember(userId, data) {
+  const last = await prisma.familyMember.findFirst({
+    where: { userId },
+    orderBy: { order: "desc" },
+  });
+  return prisma.familyMember.create({
+    data: { ...data, userId, order: (last?.order ?? -1) + 1 },
+  });
+}
+
+export async function reorderFamilyMembers(userId, orderedIds) {
+  const members = await prisma.familyMember.findMany({ where: { userId } });
+  const ownedIds = new Set(members.map((m) => m.id));
+  if (
+    orderedIds.length !== members.length ||
+    !orderedIds.every((id) => ownedIds.has(id))
+  ) {
+    throw httpError(400, "L'elenco dei membri non è valido");
+  }
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.familyMember.update({ where: { id }, data: { order: index } }),
+    ),
+  );
+
+  return listFamilyMembers(userId);
 }
 
 async function findOwnedFamilyMember(userId, id) {
