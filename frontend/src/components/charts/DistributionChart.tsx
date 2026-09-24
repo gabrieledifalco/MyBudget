@@ -62,10 +62,11 @@ export function DistributionChart({ data }: { data: DistributionSlice[] }) {
         </Pie>
         <Tooltip
           contentStyle={{
-            background: "#191d31",
-            border: "1px solid #ffffff1f",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
           }}
+          labelStyle={{ color: "var(--text)" }}
           formatter={(value: number) => format(value)}
         />
         <Legend />

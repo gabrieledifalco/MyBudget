@@ -2,9 +2,14 @@ import { InsightsOverview } from "@/features/insights/InsightsOverview";
 
 export function InsightsPage() {
   return (
-    <section className="page">
-      <h1>Overview intelligente</h1>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Analisi finanziaria</h1>
+          <p className="page-subtitle">Overview intelligente della tua situazione economica</p>
+        </div>
+      </div>
       <InsightsOverview />
-    </section>
+    </div>
   );
 }

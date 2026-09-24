@@ -18,29 +18,29 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" />
-        <XAxis dataKey="month" stroke="#a2a8c3" fontSize={12} />
-        <YAxis stroke="#a2a8c3" fontSize={12} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+        <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} />
+        <YAxis stroke="var(--text-muted)" fontSize={12} />
         <Tooltip
           contentStyle={{
-            background: "#191d31",
-            border: "1px solid #ffffff1f",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
           }}
-          labelStyle={{ color: "#f4f5fb" }}
+          labelStyle={{ color: "var(--text)" }}
           formatter={(value: number) => format(value)}
         />
         <Legend />
         <Bar
           dataKey="income"
           name="Entrate"
-          fill="#4ade80"
+          fill="var(--income)"
           radius={[4, 4, 0, 0]}
         />
         <Bar
           dataKey="expenses"
           name="Uscite"
-          fill="#f87171"
+          fill="var(--expense)"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>

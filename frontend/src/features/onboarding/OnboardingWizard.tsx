@@ -1,3 +1,4 @@
+import { Home, Users, TrendingUp, PiggyBank, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,12 +12,12 @@ import type { ProfileType } from "@/types/auth";
 
 type Step = "profile" | "family" | "income" | "housing" | "passive";
 
-const STEP_LABELS: Record<Step, string> = {
-  profile: "Tipologia profilo",
-  family: "Nucleo familiare",
-  income: "Profilazione reddituale",
-  housing: "Situazione abitativa",
-  passive: "Entrate passive",
+const STEP_META: Record<Step, { label: string; title: string; subtitle: string; icon: React.ElementType }> = {
+  profile:  { label: "Profilo",    title: "Che tipo di profilo gestisci?", subtitle: "Scegli se gestire le tue finanze personali o quelle di tutta la famiglia.", icon: Wallet },
+  family:   { label: "Famiglia",   title: "Chi fa parte della tua famiglia?", subtitle: "Aggiungi i componenti del nucleo familiare.", icon: Users },
+  income:   { label: "Entrate",    title: "Quali sono le tue entrate?", subtitle: "Inserisci stipendi, redditi e altre fonti di entrata.", icon: TrendingUp },
+  housing:  { label: "Abitazione", title: "Come è la tua situazione abitativa?", subtitle: "Casa di proprietà, mutuo o affitto.", icon: Home },
+  passive:  { label: "Rendite",    title: "Hai entrate passive?", subtitle: "Affitti, investimenti, pensioni e altre rendite.", icon: PiggyBank },
 };
 
 export function OnboardingWizard() {
@@ -35,7 +36,7 @@ export function OnboardingWizard() {
 
   const step = steps[stepIndex];
   const isLastStep = stepIndex === steps.length - 1;
-
+  const meta = STEP_META[step];
   const handleProfileTypeChange = async (value: ProfileType) => {
     setProfileType(value);
     await profileApi.updateProfile({ profileType: value });
@@ -56,65 +57,99 @@ export function OnboardingWizard() {
   };
 
   return (
-    <section className="page page--auth">
-      <div className="card card--onboarding">
-        <p className="page__hint">
-          Passo {stepIndex + 1} di {steps.length} · {STEP_LABELS[step]}
-        </p>
-        <h1>Completa il tuo profilo</h1>
-        <p className="page__hint">
-          Prima di accedere alla Dashboard raccogliamo qualche informazione per
-          personalizzare l'analisi finanziaria.
-        </p>
+    <div className="onboarding-shell">
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "var(--space-xl)" }}>
+        <div style={{
+          width: 36,
+          height: 36,
+          background: "linear-gradient(135deg, var(--accent), #818cf8)",
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <Wallet size={18} color="#fff" />
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 700 }}>My<span style={{ color: "var(--accent)" }}>Budget</span></span>
+      </div>
 
+      <div className="onboarding-card">
+        {/* Progress bar */}
+        <div className="onboarding-progress">
+          {steps.map((s, i) => (
+            <div
+              key={s}
+              className={`onboarding-progress__step${i < stepIndex ? " done" : i === stepIndex ? " active" : ""}`}
+            />
+          ))}
+        </div>
+
+        {/* Header */}
+        <div className="onboarding-header">
+          <div className="onboarding-step-label">
+            Passo {stepIndex + 1} di {steps.length} · {meta.label}
+          </div>
+          <h1 className="onboarding-title">{meta.title}</h1>
+          <p className="onboarding-subtitle">{meta.subtitle}</p>
+        </div>
+
+        {/* Step content */}
         {step === "profile" && (
-          <div className="card">
-            <h2>Che tipo di profilo vuoi gestire?</h2>
-            <div className="form-row">
-              <label className="field">
-                <span>Tipologia profilo</span>
-                <select
-                  value={profileType}
-                  onChange={(e) =>
-                    handleProfileTypeChange(e.target.value as ProfileType)
-                  }
-                >
-                  <option value="INDIVIDUAL">Individuale</option>
-                  <option value="FAMILY">Familiare</option>
-                </select>
-              </label>
-            </div>
+          <div className="profile-type-grid">
+            <button
+              type="button"
+              className={`profile-type-card${profileType === "INDIVIDUAL" ? " selected" : ""}`}
+              onClick={() => handleProfileTypeChange("INDIVIDUAL")}
+            >
+              <div className="profile-type-card__icon">
+                <Wallet size={24} />
+              </div>
+              <div className="profile-type-card__title">Individuale</div>
+              <div className="profile-type-card__desc">Gestisci le tue finanze personali</div>
+            </button>
+            <button
+              type="button"
+              className={`profile-type-card${profileType === "FAMILY" ? " selected" : ""}`}
+              onClick={() => handleProfileTypeChange("FAMILY")}
+            >
+              <div className="profile-type-card__icon">
+                <Users size={24} />
+              </div>
+              <div className="profile-type-card__title">Familiare</div>
+              <div className="profile-type-card__desc">Gestisci il budget di tutta la famiglia</div>
+            </button>
           </div>
         )}
 
-        {step === "family" && <FamilyMembersManager />}
-        {step === "income" && <IncomeManager />}
+        {step === "family"  && <FamilyMembersManager />}
+        {step === "income"  && <IncomeManager />}
         {step === "housing" && <HousingForm />}
         {step === "passive" && <PassiveIncomeManager />}
 
-        <div className="list-item__actions" style={{ marginTop: 16 }}>
+        {/* Footer */}
+        <div className={`onboarding-footer${stepIndex === 0 ? " onboarding-footer--end" : ""}`}>
           {stepIndex > 0 && (
             <button type="button" className="btn btn--ghost" onClick={goBack}>
               Indietro
             </button>
           )}
-          {!isLastStep && (
+          {!isLastStep ? (
             <button type="button" className="btn btn--primary" onClick={goNext}>
               Avanti
             </button>
-          )}
-          {isLastStep && (
+          ) : (
             <button
               type="button"
               className="btn btn--primary"
               onClick={handleFinish}
               disabled={completing}
             >
-              Vai alla Dashboard
+              {completing ? "Caricamento..." : "Vai alla Dashboard →"}
             </button>
           )}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
