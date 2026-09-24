@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+} from "react";
 import { X } from "lucide-react";
 
 import * as expenseApi from "@/api/expense.api";
@@ -7,7 +13,12 @@ import * as profileApi from "@/api/profile.api";
 import { useAuth } from "@/features/auth/AuthContext";
 import { PersonalHabits } from "@/features/profile/PersonalHabits";
 import { useFetch } from "@/hooks/useFetch";
-import type { EmploymentType, FamilyMember, FamilyRole, Income } from "@/types/domain";
+import type {
+  EmploymentType,
+  FamilyMember,
+  FamilyRole,
+  Income,
+} from "@/types/domain";
 
 const ROLE_LABELS: Record<FamilyRole, string> = {
   SELF: "Io",
@@ -28,7 +39,7 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
 const emptyForm = {
   firstName: "",
   lastName: "",
-  role: "SPOUSE" as FamilyRole,
+  role: "" as FamilyRole | "",
   producesIncome: false,
 };
 
@@ -48,10 +59,20 @@ interface IncomeModalProps {
   onSaved: () => void;
 }
 
-function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: IncomeModalProps) {
-  const unlinked = incomes.filter((i) => !i.memberId || i.memberId === memberId);
+function IncomeModal({
+  memberId,
+  memberName,
+  incomes,
+  onClose,
+  onSaved,
+}: IncomeModalProps) {
+  const unlinked = incomes.filter(
+    (i) => !i.memberId || i.memberId === memberId,
+  );
   const alreadyLinked = incomes.filter((i) => i.memberId === memberId);
-  const [tab, setTab] = useState<"link" | "new">(unlinked.length > 0 ? "link" : "new");
+  const [tab, setTab] = useState<"link" | "new">(
+    unlinked.length > 0 ? "link" : "new",
+  );
   const [selectedId, setSelectedId] = useState<string>(unlinked[0]?.id ?? "");
   const [form, setForm] = useState(emptyIncomeForm);
   const [submitting, setSubmitting] = useState(false);
@@ -97,35 +118,56 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
     <div
       className="modal-overlay"
       ref={overlayRef}
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
     >
       <div className="modal">
         <div className="modal__header">
           <div>
             <h2 className="modal__title">Reddito di {memberName}</h2>
-            <p className="modal__subtitle">Collega o inserisci l'entrata imputata a questo membro</p>
+            <p className="modal__subtitle">
+              Collega o inserisci l'entrata imputata a questo membro
+            </p>
           </div>
-          <button type="button" className="btn btn--ghost btn--sm modal__close" onClick={onClose}>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm modal__close"
+            onClick={onClose}
+          >
             <X size={16} />
           </button>
         </div>
 
         {alreadyLinked.length > 0 && (
           <div style={{ marginBottom: "var(--space)" }}>
-            <p className="page__hint" style={{ textAlign: "left", marginBottom: 4 }}>
+            <p
+              className="page__hint"
+              style={{ textAlign: "left", marginBottom: 4 }}
+            >
               Entrate già collegate:
             </p>
             {alreadyLinked.map((inc) => (
-              <div key={inc.id} className="list-item" style={{ marginBottom: 4 }}>
+              <div
+                key={inc.id}
+                className="list-item"
+                style={{ marginBottom: 4 }}
+              >
                 <div className="list-item__main">
-                  <span className="list-item__title">{EMPLOYMENT_LABELS[inc.employmentType]}</span>
-                  <span className="list-item__meta">Netto €{inc.netMonthly}/mese · Lordo €{inc.grossAnnual}/anno</span>
+                  <span className="list-item__title">
+                    {EMPLOYMENT_LABELS[inc.employmentType]}
+                  </span>
+                  <span className="list-item__meta">
+                    Netto €{inc.netMonthly}/mese · Lordo €{inc.grossAnnual}/anno
+                  </span>
                 </div>
                 <button
                   type="button"
                   className="btn btn--danger btn--sm"
                   onClick={async () => {
-                    await incomeApi.updateIncome(inc.id, { memberId: undefined });
+                    await incomeApi.updateIncome(inc.id, {
+                      memberId: undefined,
+                    });
                     onSaved();
                   }}
                 >
@@ -157,15 +199,21 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
         {tab === "link" && (
           <div>
             {unlinked.length === 0 ? (
-              <p className="empty-state">Nessuna entrata disponibile da collegare.</p>
+              <p className="empty-state">
+                Nessuna entrata disponibile da collegare.
+              </p>
             ) : (
               <>
                 <label className="field">
                   <span className="field__label">Entrata da collegare</span>
-                  <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+                  <select
+                    value={selectedId}
+                    onChange={(e) => setSelectedId(e.target.value)}
+                  >
                     {unlinked.map((inc) => (
                       <option key={inc.id} value={inc.id}>
-                        {EMPLOYMENT_LABELS[inc.employmentType]} — €{inc.netMonthly}/mese
+                        {EMPLOYMENT_LABELS[inc.employmentType]} — €
+                        {inc.netMonthly}/mese
                       </option>
                     ))}
                   </select>
@@ -192,10 +240,17 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
                 <span className="field__label">Tipo impiego</span>
                 <select
                   value={form.employmentType}
-                  onChange={(e) => setForm({ ...form, employmentType: e.target.value as EmploymentType })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      employmentType: e.target.value as EmploymentType,
+                    })
+                  }
                 >
                   {Object.entries(EMPLOYMENT_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -207,7 +262,9 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
                   step="0.01"
                   placeholder="2000"
                   value={form.netMonthly}
-                  onChange={(e) => setForm({ ...form, netMonthly: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, netMonthly: e.target.value })
+                  }
                   required
                 />
               </label>
@@ -221,7 +278,9 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
                   step="0.01"
                   placeholder="32000"
                   value={form.grossAnnual}
-                  onChange={(e) => setForm({ ...form, grossAnnual: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, grossAnnual: e.target.value })
+                  }
                   required
                 />
               </label>
@@ -229,16 +288,24 @@ function IncomeModal({ memberId, memberName, incomes, onClose, onSaved }: Income
                 <span className="field__label">N° mensilità</span>
                 <select
                   value={form.monthlyPaymentsCount}
-                  onChange={(e) => setForm({ ...form, monthlyPaymentsCount: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, monthlyPaymentsCount: e.target.value })
+                  }
                 >
                   {[12, 13, 14].map((n) => (
-                    <option key={n} value={n}>{n}</option>
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
             {error && <p className="form__error">{error}</p>}
-            <button type="submit" className="btn btn--primary" disabled={submitting}>
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={submitting}
+            >
               {submitting ? "Salvataggio…" : "Crea entrata"}
             </button>
           </form>
@@ -256,7 +323,10 @@ export function FamilyMembersManager() {
     error,
     reload,
   } = useFetch(profileApi.listFamilyMembers, []);
-  const { data: incomes, reload: reloadIncomes } = useFetch(incomeApi.listIncomes, []);
+  const { data: incomes, reload: reloadIncomes } = useFetch(
+    incomeApi.listIncomes,
+    [],
+  );
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -264,9 +334,13 @@ export function FamilyMembersManager() {
   const [orderedMembers, setOrderedMembers] = useState<FamilyMember[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [habitsOpenId, setHabitsOpenId] = useState<string | null>(null);
-  const [incomeModalMember, setIncomeModalMember] = useState<FamilyMember | null>(null);
+  const [incomeModalMember, setIncomeModalMember] =
+    useState<FamilyMember | null>(null);
   const { data: categories } = useFetch(expenseApi.listCategories, []);
-  const { data: expenses, reload: reloadExpenses } = useFetch(expenseApi.listExpenses, []);
+  const { data: expenses, reload: reloadExpenses } = useFetch(
+    expenseApi.listExpenses,
+    [],
+  );
 
   useEffect(() => {
     if (members) setOrderedMembers(members);
@@ -319,12 +393,16 @@ export function FamilyMembersManager() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!form.role) return;
     setSubmitting(true);
     try {
       if (editingId) {
-        await profileApi.updateFamilyMember(editingId, form);
+        await profileApi.updateFamilyMember(editingId, {
+          ...form,
+          role: form.role,
+        });
       } else {
-        await profileApi.createFamilyMember(form);
+        await profileApi.createFamilyMember({ ...form, role: form.role });
       }
       resetForm();
       reload();
@@ -333,13 +411,8 @@ export function FamilyMembersManager() {
     }
   };
 
-  const handleProducesIncomeChange = (checked: boolean, memberId?: string) => {
+  const handleProducesIncomeChange = (checked: boolean) => {
     setForm((f) => ({ ...f, producesIncome: checked }));
-    // When editing an existing member and enabling income, open the modal
-    if (checked && memberId) {
-      const member = members?.find((m) => m.id === memberId);
-      if (member) setIncomeModalMember(member);
-    }
   };
 
   const handleDelete = async (id: string) => {
@@ -393,7 +466,11 @@ export function FamilyMembersManager() {
             <select
               value={form.role}
               onChange={(e) => handleRoleChange(e.target.value as FamilyRole)}
+              required
             >
+              <option value="" disabled>
+                Seleziona un ruolo
+              </option>
               {Object.entries(ROLE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -407,7 +484,7 @@ export function FamilyMembersManager() {
           <input
             type="checkbox"
             checked={form.producesIncome}
-            onChange={(e) => handleProducesIncomeChange(e.target.checked, editingId ?? undefined)}
+            onChange={(e) => handleProducesIncomeChange(e.target.checked)}
           />
           <span>Produce reddito</span>
         </label>
@@ -458,7 +535,8 @@ export function FamilyMembersManager() {
                 <span className="list-item__meta">
                   {ROLE_LABELS[member.role]}
                   {member.producesIncome ? " · Produce reddito" : ""}
-                  {incomes && incomes.filter((i) => i.memberId === member.id).length > 0
+                  {incomes &&
+                  incomes.filter((i) => i.memberId === member.id).length > 0
                     ? ` · ${incomes.filter((i) => i.memberId === member.id).length} entrata/e collegate`
                     : ""}
                 </span>
@@ -518,7 +596,10 @@ export function FamilyMembersManager() {
           memberName={`${incomeModalMember.firstName} ${incomeModalMember.lastName}`}
           incomes={incomes}
           onClose={() => setIncomeModalMember(null)}
-          onSaved={() => { reloadIncomes(); reload(); }}
+          onSaved={() => {
+            reloadIncomes();
+            reload();
+          }}
         />
       )}
     </div>

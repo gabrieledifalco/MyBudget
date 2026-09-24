@@ -658,9 +658,13 @@ body {
 }
 
 .field--checkbox input {
+  appearance: auto;
+  -webkit-appearance: auto;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  background: none;
+  border: none;
   accent-color: var(--accent);
 }
 

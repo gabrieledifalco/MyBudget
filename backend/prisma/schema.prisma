@@ -55,6 +55,7 @@ model FamilyMember {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses Expense[]
+  loans    Loan[]
 
   @@index([userId])
 }
@@ -133,6 +134,7 @@ model Category {
   isDefault Boolean @default(true)
 
   expenses Expense[]
+  loans    Loan[]
 }
 
 model Expense {
@@ -144,10 +146,13 @@ model Expense {
   description String?
   kind        String // FIXED | VARIABLE
   amount      Float
+  date        DateTime @default(now()) // data dell'uscita (occorrenza singola o riferimento per quelle ricorrenti)
+  isRecurring Boolean  @default(true) // se falsa è un'uscita singola sulla sola `date`, la frequency viene ignorata
   frequency   String // DAILY | WEEKLY | MONTHLY | YEARLY
   utility     Int      @default(3) // 1 superflua ... 5 essenziale
   startDate   DateTime?
   endDate     DateTime?
+  receiptUrl  String? // percorso dello scontrino archiviato
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -163,6 +168,8 @@ model Expense {
 model Loan {
   id             String   @id @default(cuid())
   userId         String
+  categoryId     String?
+  memberId       String? // intestatario del finanziamento
   name           String
   description    String?
   totalAmount    Float
@@ -170,9 +177,13 @@ model Loan {
   startDate      DateTime
   endDate        DateTime
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category?     @relation(fields: [categoryId], references: [id])
+  member   FamilyMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([categoryId])
+  @@index([memberId])
 }
 
 model Simulation {

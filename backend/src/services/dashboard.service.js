@@ -10,9 +10,9 @@ export async function getSummary(userId) {
   return computeKpis(financials);
 }
 
-export async function getTrend(userId, months) {
+export async function getTrend(userId, options) {
   const financials = await getUserFinancials(userId);
-  return computeTrend(financials, months);
+  return computeTrend(financials, options);
 }
 
 export async function getDistribution(userId) {

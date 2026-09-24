@@ -67,6 +67,7 @@ export function DistributionChart({ data }: { data: DistributionSlice[] }) {
             borderRadius: 8,
           }}
           labelStyle={{ color: "var(--text)" }}
+          itemStyle={{ color: "var(--text)" }}
           formatter={(value: number) => format(value)}
         />
         <Legend />

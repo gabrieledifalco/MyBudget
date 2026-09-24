@@ -9,17 +9,17 @@ import type { ProfileType } from "@/types/auth";
 type Mode = "login" | "register" | "forgot" | "reset";
 
 const TITLES: Record<Mode, string> = {
-  login:    "Bentornato",
+  login: "Accedi",
   register: "Crea il tuo account",
-  forgot:   "Recupera password",
-  reset:    "Nuova password",
+  forgot: "Recupera password",
+  reset: "Nuova password",
 };
 
 const SUBTITLES: Record<Mode, string> = {
-  login:    "Accedi per gestire le tue finanze",
+  login: "Accedi per gestire le tue finanze",
   register: "Inizia a tenere sotto controllo le tue finanze",
-  forgot:   "Ti invieremo le istruzioni via email",
-  reset:    "Scegli una nuova password sicura",
+  forgot: "Ti invieremo le istruzioni via email",
+  reset: "Scegli una nuova password sicura",
 };
 
 export function LoginPage() {
@@ -173,7 +173,9 @@ export function LoginPage() {
                 </span>
                 <input
                   type="password"
-                  placeholder={mode === "register" ? "Almeno 8 caratteri" : "••••••••"}
+                  placeholder={
+                    mode === "register" ? "Almeno 8 caratteri" : "••••••••"
+                  }
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   minLength={8}
@@ -213,12 +215,14 @@ export function LoginPage() {
               className="btn btn--primary btn--full btn--lg"
               disabled={submitting}
             >
-              {submitting ? "Caricamento..." : (
+              {submitting ? (
+                "Caricamento..."
+              ) : (
                 <>
-                  {mode === "login"    && "Accedi"}
+                  {mode === "login" && "Accedi"}
                   {mode === "register" && "Crea account"}
-                  {mode === "forgot"   && "Invia istruzioni"}
-                  {mode === "reset"    && "Aggiorna password"}
+                  {mode === "forgot" && "Invia istruzioni"}
+                  {mode === "reset" && "Aggiorna password"}
                 </>
               )}
             </button>
@@ -232,7 +236,9 @@ export function LoginPage() {
                 : "Hai già un account? "}
               <button
                 type="button"
-                onClick={() => switchMode(mode === "login" ? "register" : "login")}
+                onClick={() =>
+                  switchMode(mode === "login" ? "register" : "login")
+                }
               >
                 {mode === "login" ? "Registrati" : "Accedi"}
               </button>
@@ -252,7 +258,14 @@ export function LoginPage() {
 
       {/* Panel destra: hero (solo desktop) */}
       <div className="auth-hero">
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 360 }}>
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            textAlign: "center",
+            maxWidth: 360,
+          }}
+        >
           <div
             style={{
               width: 72,
@@ -275,9 +288,17 @@ export function LoginPage() {
               marginBottom: "var(--space-sm)",
             }}
           >
-            Le tue finanze,<br />sempre sotto controllo
+            Le tue finanze,
+            <br />
+            sempre sotto controllo
           </h2>
-          <p style={{ color: "var(--text-muted)", fontSize: 15, lineHeight: 1.6 }}>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: 15,
+              lineHeight: 1.6,
+            }}
+          >
             Dashboard intuitiva · Analisi automatica · Simulatore di risparmio
           </p>
 

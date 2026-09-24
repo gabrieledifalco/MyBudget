@@ -1,5 +1,5 @@
 import { prisma } from "../config/prisma.js";
-import { toYearly, toMonthly } from "../utils/frequency.js";
+import { toYearly, toMonthly, toDaily } from "../utils/frequency.js";
 
 /** Carica tutti i dati finanziari di un utente necessari ai calcoli di dashboard/insights/simulatore. */
 export async function getUserFinancials(userId) {
@@ -39,6 +39,17 @@ export function housingYearlyAmount(housing) {
   return 0;
 }
 
+function isDateInCurrentYear(date, now = new Date()) {
+  return date && date.getFullYear() === now.getFullYear();
+}
+
+/** Separa le uscite ricorrenti (proiettabili via frequency) da quelle singole (imputate su una sola `date`). */
+function splitRecurring(expenses) {
+  const recurring = expenses.filter((e) => e.isRecurring !== false);
+  const oneOff = expenses.filter((e) => e.isRecurring === false);
+  return { recurring, oneOff };
+}
+
 export function computeAnnualIncome({ incomes, passiveIncomes }) {
   const work = incomes.reduce(
     (sum, i) =>
@@ -57,12 +68,19 @@ export function computeAnnualIncome({ incomes, passiveIncomes }) {
 }
 
 export function computeAnnualExpenses({ expenses, housing, loans }) {
-  const recurring = expenses.reduce(
+  const { recurring, oneOff } = splitRecurring(expenses);
+  const recurringTotal = recurring.reduce(
     (sum, e) => sum + toYearly(e.amount, e.frequency),
     0,
   );
+  // Le uscite singole contano per l'anno solare in cui sono state imputate.
+  const oneOffTotal = oneOff
+    .filter((e) => isDateInCurrentYear(e.date))
+    .reduce((sum, e) => sum + e.amount, 0);
   const loansTotal = loans.reduce((sum, l) => sum + l.monthlyPayment * 12, 0);
-  return recurring + loansTotal + housingYearlyAmount(housing);
+  return (
+    recurringTotal + oneOffTotal + loansTotal + housingYearlyAmount(housing)
+  );
 }
 
 export function computeKpis(financials) {
@@ -86,8 +104,13 @@ export function computeExpenseDistribution({ expenses, housing, loans }) {
   const add = (area, amount) =>
     totals.set(area, (totals.get(area) ?? 0) + amount);
 
-  for (const e of expenses) {
+  const { recurring, oneOff } = splitRecurring(expenses);
+
+  for (const e of recurring) {
     add(e.category?.macroArea ?? "OTHER", toYearly(e.amount, e.frequency));
+  }
+  for (const e of oneOff.filter((e) => isDateInCurrentYear(e.date))) {
+    add(e.category?.macroArea ?? "OTHER", e.amount);
   }
 
   const housingAmount = housingYearlyAmount(housing);
@@ -102,56 +125,117 @@ export function computeExpenseDistribution({ expenses, housing, loans }) {
   }));
 }
 
-function isActiveInMonth(startDate, endDate, monthStart, monthEnd) {
-  if (startDate && startDate > monthEnd) return false;
-  if (endDate && endDate < monthStart) return false;
+function isActiveInRange(startDate, endDate, rangeStart, rangeEnd) {
+  if (startDate && startDate > rangeEnd) return false;
+  if (endDate && endDate < rangeStart) return false;
   return true;
 }
 
-/** Andamento mensile ricostruito dalle voci ricorrenti (nessuno storico di transazioni nel modello dati). */
-export function computeTrend(financials, months = 6) {
-  const now = new Date();
-  const result = [];
+function daysInMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
 
-  for (let i = months - 1; i >= 0; i -= 1) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthEnd = new Date(
+/** Converte un importo mensile "piatto" (senza frequency propria, es. netMonthly) nell'unit\u00e0 richiesta. */
+function monthlyToUnit(value, unit, referenceDate) {
+  if (unit === "day") return value / daysInMonth(referenceDate);
+  if (unit === "year") return value * 12;
+  return value;
+}
+
+function getPeriodRange(now, unit, offset) {
+  if (unit === "day") {
+    const start = new Date(
       now.getFullYear(),
-      now.getMonth() - i + 1,
-      0,
+      now.getMonth(),
+      now.getDate() - offset,
+    );
+    const end = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
       23,
       59,
       59,
     );
+    return { start, end };
+  }
+  if (unit === "year") {
+    const start = new Date(now.getFullYear() - offset, 0, 1);
+    const end = new Date(now.getFullYear() - offset, 11, 31, 23, 59, 59);
+    return { start, end };
+  }
+  const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth() - offset + 1,
+    0,
+    23,
+    59,
+    59,
+  );
+  return { start, end };
+}
+
+function formatPeriodLabel(start, unit) {
+  if (unit === "day") {
+    return `${String(start.getDate()).padStart(2, "0")}/${String(start.getMonth() + 1).padStart(2, "0")}`;
+  }
+  if (unit === "year") return String(start.getFullYear());
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const PERIOD_DEFAULTS = { day: 30, month: 6, year: 3 };
+
+/** Andamento ricostruito dalle voci ricorrenti (nessuno storico di transazioni nel modello dati). */
+export function computeTrend(
+  financials,
+  { granularity = "month", periods } = {},
+) {
+  const unit = ["day", "month", "year"].includes(granularity)
+    ? granularity
+    : "month";
+  const count = periods ?? PERIOD_DEFAULTS[unit];
+  const convert = { day: toDaily, month: toMonthly, year: toYearly }[unit];
+  const now = new Date();
+  const result = [];
+
+  for (let i = count - 1; i >= 0; i -= 1) {
+    const { start, end } = getPeriodRange(now, unit, i);
 
     const income =
-      financials.incomes.reduce((sum, inc) => sum + inc.netMonthly, 0) +
+      financials.incomes.reduce(
+        (sum, inc) => sum + monthlyToUnit(inc.netMonthly, unit, start),
+        0,
+      ) +
       financials.passiveIncomes
-        .filter((p) => isActiveInMonth(p.startDate, null, monthStart, monthEnd))
-        .reduce((sum, p) => sum + toMonthly(p.amount, p.frequency), 0);
+        .filter((p) => isActiveInRange(p.startDate, null, start, end))
+        .reduce((sum, p) => sum + convert(p.amount, p.frequency), 0);
 
     const housingCost =
       financials.housing?.type === "MORTGAGE"
-        ? (financials.housing.mortgagePayment ?? 0)
+        ? monthlyToUnit(financials.housing.mortgagePayment ?? 0, unit, start)
         : financials.housing?.type === "RENT"
-          ? (financials.housing.rentAmount ?? 0)
+          ? monthlyToUnit(financials.housing.rentAmount ?? 0, unit, start)
           : 0;
 
+    const { recurring, oneOff } = splitRecurring(financials.expenses);
     const expenses =
-      financials.expenses
-        .filter((e) =>
-          isActiveInMonth(e.startDate, e.endDate, monthStart, monthEnd),
-        )
-        .reduce((sum, e) => sum + toMonthly(e.amount, e.frequency), 0) +
+      recurring
+        .filter((e) => isActiveInRange(e.startDate, e.endDate, start, end))
+        .reduce((sum, e) => sum + convert(e.amount, e.frequency), 0) +
+      oneOff
+        .filter((e) => e.date >= start && e.date <= end)
+        .reduce((sum, e) => sum + e.amount, 0) +
       financials.loans
-        .filter((l) =>
-          isActiveInMonth(l.startDate, l.endDate, monthStart, monthEnd),
-        )
-        .reduce((sum, l) => sum + l.monthlyPayment, 0) +
+        .filter((l) => isActiveInRange(l.startDate, l.endDate, start, end))
+        .reduce(
+          (sum, l) => sum + monthlyToUnit(l.monthlyPayment, unit, start),
+          0,
+        ) +
       housingCost;
 
     result.push({
-      month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, "0")}`,
+      period: formatPeriodLabel(start, unit),
       income,
       expenses,
       balance: income - expenses,

@@ -300,11 +300,13 @@ export function IncomeManager() {
                 onChange={(e) => setForm({ ...form, memberId: e.target.value })}
               >
                 <option value="">Nucleo familiare (generica)</option>
-                {familyMembers?.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.firstName} {m.lastName}
-                  </option>
-                ))}
+                {familyMembers
+                  ?.filter((m) => m.producesIncome)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.firstName} {m.lastName}
+                    </option>
+                  ))}
               </select>
             </label>
           )}

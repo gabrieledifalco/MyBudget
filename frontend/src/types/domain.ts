@@ -43,10 +43,13 @@ export interface Expense {
   description?: string;
   kind: ExpenseKind;
   amount: number;
+  date: string;
+  isRecurring: boolean;
   frequency: Frequency;
   utility: UtilityLevel;
   categoryId?: string;
   memberId?: string;
+  receiptUrl?: string;
 }
 
 export interface Loan {
@@ -57,6 +60,8 @@ export interface Loan {
   monthlyPayment: number;
   startDate: string;
   endDate: string;
+  categoryId?: string;
+  memberId?: string;
 }
 
 export interface FamilyMember {
@@ -131,8 +136,10 @@ export interface DashboardSummary {
   yearly: Kpi;
 }
 
+export type TrendGranularity = "day" | "month" | "year";
+
 export interface TrendPoint {
-  month: string;
+  period: string;
   income: number;
   expenses: number;
   balance: number;

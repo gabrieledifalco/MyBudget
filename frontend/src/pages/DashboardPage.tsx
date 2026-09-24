@@ -1,4 +1,9 @@
-import { ArrowDownRight, ArrowUpRight, Sparkles, TrendingUp } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { useState } from "react";
 
 import * as dashboardApi from "@/api/dashboard.api";
@@ -7,7 +12,7 @@ import { DistributionChart } from "@/components/charts/DistributionChart";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
-import type { FinancialStability } from "@/types/domain";
+import type { FinancialStability, TrendGranularity } from "@/types/domain";
 
 const STABILITY_LABELS: Record<FinancialStability, string> = {
   STABILE: "Stabile",
@@ -19,34 +24,57 @@ const STABILITY_LABELS: Record<FinancialStability, string> = {
 type Period = "daily" | "monthly" | "yearly";
 
 const PERIOD_LABELS: Record<Period, string> = {
-  daily:   "Oggi",
+  daily: "Oggi",
   monthly: "Questo mese",
-  yearly:  "Quest'anno",
+  yearly: "Quest'anno",
+};
+
+const TREND_LABELS: Record<TrendGranularity, string> = {
+  day: "Giorno",
+  month: "Mese",
+  year: "Anno",
 };
 
 function HealthGauge({ score, label }: { score: number; label: string }) {
   const color =
-    score >= 71 ? "var(--income)"
-    : score >= 51 ? "var(--warning)"
-    : "var(--expense)";
+    score >= 71
+      ? "var(--income)"
+      : score >= 51
+        ? "var(--warning)"
+        : "var(--expense)";
 
   const circumference = 2 * Math.PI * 40;
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-lg)" }}>
-      <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: "var(--space-lg)" }}
+    >
+      <div
+        style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}
+      >
         <svg width="96" height="96" style={{ transform: "rotate(-90deg)" }}>
-          <circle cx="48" cy="48" r="40" fill="none" stroke="var(--bg-elevated)" strokeWidth="8" />
           <circle
-            cx="48" cy="48" r="40"
+            cx="48"
+            cy="48"
+            r="40"
+            fill="none"
+            stroke="var(--bg-elevated)"
+            strokeWidth="8"
+          />
+          <circle
+            cx="48"
+            cy="48"
+            r="40"
             fill="none"
             stroke={color}
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            style={{ transition: "stroke-dashoffset 800ms cubic-bezier(.4,0,.2,1)" }}
+            style={{
+              transition: "stroke-dashoffset 800ms cubic-bezier(.4,0,.2,1)",
+            }}
           />
         </svg>
         <div
@@ -59,21 +87,45 @@ function HealthGauge({ score, label }: { score: number; label: string }) {
             justifyContent: "center",
           }}
         >
-          <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{score}</span>
+          <span style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>
+            {score}
+          </span>
         </div>
       </div>
       <div>
-        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Financial Health Score</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          Financial Health Score
+        </div>
         <div
           className="badge"
           style={{
             marginTop: 8,
-            background: score >= 71 ? "var(--income-light)" : score >= 51 ? "var(--warning-light)" : "var(--expense-light)",
-            color: score >= 71 ? "var(--income)" : score >= 51 ? "var(--warning)" : "var(--expense)",
+            background:
+              score >= 71
+                ? "var(--income-light)"
+                : score >= 51
+                  ? "var(--warning-light)"
+                  : "var(--expense-light)",
+            color:
+              score >= 71
+                ? "var(--income)"
+                : score >= 51
+                  ? "var(--warning)"
+                  : "var(--expense)",
           }}
         >
-          {score >= 86 ? "Eccellente" : score >= 71 ? "Buono" : score >= 51 ? "Sufficiente" : score >= 31 ? "Debole" : "Critico"}
+          {score >= 86
+            ? "Eccellente"
+            : score >= 71
+              ? "Buono"
+              : score >= 51
+                ? "Sufficiente"
+                : score >= 31
+                  ? "Debole"
+                  : "Critico"}
         </div>
       </div>
     </div>
@@ -83,23 +135,38 @@ function HealthGauge({ score, label }: { score: number; label: string }) {
 export function DashboardPage() {
   const { format } = useCurrency();
   const [period, setPeriod] = useState<Period>("monthly");
+  const [trendGranularity, setTrendGranularity] =
+    useState<TrendGranularity>("month");
 
-  const summary      = useFetch(dashboardApi.getSummary, []);
-  const trend        = useFetch(() => dashboardApi.getTrend(6), []);
+  const summary = useFetch(dashboardApi.getSummary, []);
+  const trend = useFetch(
+    () => dashboardApi.getTrend(trendGranularity),
+    [trendGranularity],
+  );
   const distribution = useFetch(dashboardApi.getDistribution, []);
-  const health       = useFetch(insightsApi.getHealthScore, []);
-  const analysis     = useFetch(insightsApi.getAnalysis, []);
-  const suggestions  = useFetch(insightsApi.getSuggestions, []);
+  const health = useFetch(insightsApi.getHealthScore, []);
+  const analysis = useFetch(insightsApi.getAnalysis, []);
+  const suggestions = useFetch(insightsApi.getSuggestions, []);
 
   const kpi = summary.data?.[period];
 
   return (
     <div className="page">
       {/* ── Period tabs ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-sm)" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-sm)",
+        }}
+      >
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">La tua situazione finanziaria al colpo d'occhio</p>
+          <p className="page-subtitle">
+            La tua situazione finanziaria al colpo d'occhio
+          </p>
         </div>
         <div className="tabs">
           {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
@@ -173,7 +240,11 @@ export function DashboardPage() {
           </div>
           <div className="kpi-card__sub">
             {health.data
-              ? (health.data.score >= 71 ? "Situazione buona" : health.data.score >= 51 ? "Margini di miglioramento" : "Attenzione richiesta")
+              ? health.data.score >= 71
+                ? "Situazione buona"
+                : health.data.score >= 51
+                  ? "Margini di miglioramento"
+                  : "Attenzione richiesta"
               : "Completa il profilo"}
           </div>
         </div>
@@ -186,70 +257,108 @@ export function DashboardPage() {
             <TrendingUp size={17} />
             Andamento entrate/uscite
           </h2>
+          <div className="tabs">
+            {(Object.keys(TREND_LABELS) as TrendGranularity[]).map((g) => (
+              <button
+                key={g}
+                className={`tab${trendGranularity === g ? " active" : ""}`}
+                onClick={() => setTrendGranularity(g)}
+              >
+                {TREND_LABELS[g]}
+              </button>
+            ))}
+          </div>
         </div>
-        {trend.data
-          ? <TrendChart data={trend.data} />
-          : <p className="text-muted" style={{ fontSize: 14 }}>Aggiungi entrate e uscite per vedere il grafico.</p>
-        }
+        {trend.data ? (
+          <TrendChart data={trend.data} granularity={trendGranularity} />
+        ) : (
+          <p className="text-muted" style={{ fontSize: 14 }}>
+            Aggiungi entrate e uscite per vedere il grafico.
+          </p>
+        )}
       </div>
 
       {/* ── Two columns: distribution + health ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space)" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "var(--space)",
+        }}
+      >
         {/* Distribuzione */}
         <div className="card">
-          <h2 className="section-title" style={{ marginBottom: "var(--space)" }}>
+          <h2
+            className="section-title"
+            style={{ marginBottom: "var(--space)" }}
+          >
             Distribuzione uscite
           </h2>
-          {distribution.data && distribution.data.length > 0
-            ? <DistributionChart data={distribution.data} />
-            : <div className="empty-state">Nessuna uscita registrata</div>
-          }
+          {distribution.data && distribution.data.length > 0 ? (
+            <DistributionChart data={distribution.data} />
+          ) : (
+            <div className="empty-state">Nessuna uscita registrata</div>
+          )}
         </div>
 
         {/* Health Score details */}
         <div className="card">
-          <h2 className="section-title" style={{ marginBottom: "var(--space-lg)" }}>
+          <h2
+            className="section-title"
+            style={{ marginBottom: "var(--space-lg)" }}
+          >
             <Sparkles size={17} />
             Financial Health Score
           </h2>
-          {health.data
-            ? (
-              <>
-                <HealthGauge score={health.data.score} label={health.data.label} />
-                <div className="breakdown-list">
-                  {health.data.breakdown.map((item) => (
-                    <div className="breakdown-item" key={item.key}>
-                      <div className="breakdown-item__header">
-                        <span className="breakdown-item__label">{item.label}</span>
-                        <span className="breakdown-item__points">{item.points}/{item.max}</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-bar__fill"
-                          style={{ width: `${(item.points / item.max) * 100}%` }}
-                        />
-                      </div>
+          {health.data ? (
+            <>
+              <HealthGauge
+                score={health.data.score}
+                label={health.data.label}
+              />
+              <div className="breakdown-list">
+                {health.data.breakdown.map((item) => (
+                  <div className="breakdown-item" key={item.key}>
+                    <div className="breakdown-item__header">
+                      <span className="breakdown-item__label">
+                        {item.label}
+                      </span>
+                      <span className="breakdown-item__points">
+                        {item.points}/{item.max}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </>
-            )
-            : <div className="empty-state">Dati insufficienti per il calcolo</div>
-          }
+                    <div className="progress-bar">
+                      <div
+                        className="progress-bar__fill"
+                        style={{ width: `${(item.points / item.max) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">Dati insufficienti per il calcolo</div>
+          )}
         </div>
       </div>
 
       {/* ── Analysis summary ── */}
       {analysis.data && (
         <div className="card">
-          <h2 className="section-title" style={{ marginBottom: "var(--space)" }}>
+          <h2
+            className="section-title"
+            style={{ marginBottom: "var(--space)" }}
+          >
             Analisi rapida
           </h2>
           <div className="card-grid">
             <div>
               <div className="kpi-card__label">Stato finanziario</div>
               <div style={{ marginTop: 6 }}>
-                <span className={`badge badge--stability-${analysis.data.stability.toLowerCase()}`}>
+                <span
+                  className={`badge badge--stability-${analysis.data.stability.toLowerCase()}`}
+                >
                   {STABILITY_LABELS[analysis.data.stability]}
                 </span>
               </div>
@@ -279,7 +388,10 @@ export function DashboardPage() {
       {/* ── Suggestions ── */}
       {suggestions.data && suggestions.data.length > 0 && (
         <div className="card">
-          <h2 className="section-title" style={{ marginBottom: "var(--space)" }}>
+          <h2
+            className="section-title"
+            style={{ marginBottom: "var(--space)" }}
+          >
             <Sparkles size={17} />
             Suggerimenti automatici
           </h2>

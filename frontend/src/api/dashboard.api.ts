@@ -2,6 +2,7 @@ import { api } from "./client";
 import type {
   DashboardSummary,
   DistributionSlice,
+  TrendGranularity,
   TrendPoint,
 } from "@/types/domain";
 
@@ -10,9 +11,12 @@ export async function getSummary(): Promise<DashboardSummary> {
   return data;
 }
 
-export async function getTrend(months = 6): Promise<TrendPoint[]> {
+export async function getTrend(
+  granularity: TrendGranularity = "month",
+  periods?: number,
+): Promise<TrendPoint[]> {
   const { data } = await api.get<TrendPoint[]>("/dashboard/trend", {
-    params: { months },
+    params: { granularity, periods },
   });
   return data;
 }
