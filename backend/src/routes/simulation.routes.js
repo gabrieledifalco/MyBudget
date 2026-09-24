@@ -1,11 +1,15 @@
-import { Router } from 'express';
+import { Router } from "express";
 
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth } from "../middleware/auth.js";
+import * as simulationController from "../controllers/simulation.controller.js";
 
 // Simulatore di risparmio
-// TODO: collegare i controller del modulo (controllers/simulation.controller.js)
 export const simulationRouter = Router();
 
 simulationRouter.use(requireAuth);
 
-simulationRouter.get('/', (_req, res) => res.status(501).json({ message: 'Non ancora implementato' }));
+simulationRouter.post("/run", simulationController.run);
+simulationRouter.get("/", simulationController.list);
+simulationRouter.post("/", simulationController.save);
+simulationRouter.get("/:id", simulationController.getOne);
+simulationRouter.delete("/:id", simulationController.remove);

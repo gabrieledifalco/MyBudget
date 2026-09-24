@@ -1,19 +1,26 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import { AppLayout } from './components/layout/AppLayout';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { IncomePage } from './pages/IncomePage';
-import { ExpensesPage } from './pages/ExpensesPage';
-import { InsightsPage } from './pages/InsightsPage';
-import { SimulatorPage } from './pages/SimulatorPage';
-import { LoginPage } from './pages/LoginPage';
+import { AppLayout } from "./components/layout/AppLayout";
+import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { DashboardPage } from "./pages/DashboardPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { IncomePage } from "./pages/IncomePage";
+import { ExpensesPage } from "./pages/ExpensesPage";
+import { InsightsPage } from "./pages/InsightsPage";
+import { SimulatorPage } from "./pages/SimulatorPage";
+import { LoginPage } from "./pages/LoginPage";
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route element={<AppLayout />}>
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profilo" element={<ProfilePage />} />

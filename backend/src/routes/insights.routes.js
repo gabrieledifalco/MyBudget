@@ -1,11 +1,13 @@
-import { Router } from 'express';
+import { Router } from "express";
 
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth } from "../middleware/auth.js";
+import * as insightsController from "../controllers/insights.controller.js";
 
 // Overview intelligente, suggerimenti e financial health score
-// TODO: collegare i controller del modulo (controllers/insights.controller.js)
 export const insightsRouter = Router();
 
 insightsRouter.use(requireAuth);
 
-insightsRouter.get('/', (_req, res) => res.status(501).json({ message: 'Non ancora implementato' }));
+insightsRouter.get("/analysis", insightsController.getAnalysis);
+insightsRouter.get("/suggestions", insightsController.getSuggestions);
+insightsRouter.get("/health-score", insightsController.getHealthScore);
