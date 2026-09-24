@@ -368,17 +368,6 @@ export function ExpenseManager() {
               />
             </label>
             <label className="field">
-              <span>Frequenza</span>
-              <select
-                value={form.frequency}
-                onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}
-              >
-                {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
               <span>Utilità (1–5)</span>
               <select
                 value={form.utility}
@@ -403,6 +392,17 @@ export function ExpenseManager() {
           {form.isRecurring ? (
             <div className="form-row">
               <label className="field">
+                <span>Frequenza</span>
+                <select
+                  value={form.frequency}
+                  onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}
+                >
+                  {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
                 <span>Inizio ricorrenza</span>
                 <input
                   type="date"
@@ -411,7 +411,12 @@ export function ExpenseManager() {
                 />
               </label>
               <label className="field">
-                <span>Fine ricorrenza</span>
+                <span>
+                  Fine ricorrenza{" "}
+                  <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                    {form.endDate ? "" : "(indefinita)"}
+                  </span>
+                </span>
                 <input
                   type="date"
                   value={form.endDate}
@@ -489,13 +494,15 @@ export function ExpenseManager() {
                   {expense.kind === "FIXED" ? "Fissa" : "Variabile"} ·{" "}
                   {format(expense.amount)} /{" "}
                   {FREQUENCY_LABELS[expense.frequency].toLowerCase()}
-                  {expense.isRecurring && expense.startDate && expense.endDate
-                    ? ` · dal ${fmtDate(expense.startDate)} al ${fmtDate(expense.endDate)}`
-                    : expense.isRecurring && expense.startDate
-                      ? ` · dal ${fmtDate(expense.startDate)}`
-                      : !expense.isRecurring && expense.date
-                        ? ` · ${fmtDate(expense.date)}`
-                        : ""}
+                  {expense.isRecurring
+                    ? expense.startDate && expense.endDate
+                      ? ` · dal ${fmtDate(expense.startDate)} al ${fmtDate(expense.endDate)}`
+                      : expense.startDate
+                        ? ` · dal ${fmtDate(expense.startDate)} · senza scadenza`
+                        : " · senza scadenza"
+                    : expense.date
+                      ? ` · ${fmtDate(expense.date)}`
+                      : ""}
                   {expense.memberId &&
                     ` · ${familyMembers?.find((m) => m.id === expense.memberId)?.firstName ?? "membro"}`}
                 </span>
