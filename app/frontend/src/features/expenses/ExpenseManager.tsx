@@ -425,7 +425,7 @@ export function ExpenseManager() {
         <form className="form" onSubmit={handleSubmit}>
 
           {/* Agente expense-classifier — descrivi la spesa a parole */}
-          {aiEnabled && !editingId && (
+          {!editingId && (
             <div style={{ marginBottom: "var(--space)" }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-subtle)" }}>
                 <Sparkles size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
@@ -442,14 +442,18 @@ export function ExpenseManager() {
                       void runClassifier(aiText, "MANUAL_INPUT");
                     }
                   }}
-                  placeholder="es. abbonamento palestra 50 euro al mese"
+                  placeholder={
+                    aiEnabled
+                      ? "es. abbonamento palestra 50 euro al mese"
+                      : "Agente non configurato — compila i campi qui sotto"
+                  }
                   style={{ flex: 1 }}
-                  disabled={aiBusy}
+                  disabled={aiBusy || !aiEnabled}
                 />
                 <button
                   type="button"
                   className="btn btn--ghost"
-                  disabled={aiBusy || aiText.trim().length < 3}
+                  disabled={aiBusy || !aiEnabled || aiText.trim().length < 3}
                   onClick={() => void runClassifier(aiText, "MANUAL_INPUT")}
                 >
                   {aiBusy ? "…" : "Compila"}
@@ -457,6 +461,11 @@ export function ExpenseManager() {
               </div>
               {aiReasoning && (
                 <p className="page__hint" style={{ marginTop: 4 }}>Utilità proposta: {aiReasoning}</p>
+              )}
+              {!aiEnabled && (
+                <p className="page__hint" style={{ marginTop: 4 }}>
+                  Per attivarlo serve ANTHROPIC_API_KEY nel backend.
+                </p>
               )}
               {aiError && <p className="form__error" style={{ marginTop: 4 }}>{aiError}</p>}
             </div>
