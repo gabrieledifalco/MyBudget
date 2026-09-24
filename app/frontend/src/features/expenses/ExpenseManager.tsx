@@ -4,7 +4,6 @@ import { createWorker } from "tesseract.js";
 
 import * as expenseApi from "@/api/expense.api";
 import * as profileApi from "@/api/profile.api";
-import { useAuth } from "@/features/auth/AuthContext";
 import { useCurrency } from "@/features/settings/CurrencyContext";
 import { useFetch } from "@/hooks/useFetch";
 import type {
@@ -44,13 +43,7 @@ function fmtDate(iso: string | undefined): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString("it-IT");
 }
 
-// ── Receipt modal ──────────────────────────────────────────────────────────────
-interface ReceiptModalProps {
-  expense: Expense;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
+// ── OCR helpers ────────────────────────────────────────────────────────────────
 function extractAmount(text: string): string {
   const patterns = [
     /(?:totale|total|tot\.?)\D{0,6}(\d{1,6}[.,]\d{2})/gi,
@@ -67,8 +60,7 @@ function extractAmount(text: string): string {
     }
     if (found.length) break;
   }
-  if (!found.length) return "";
-  return String(Math.max(...found));
+  return found.length ? String(Math.max(...found)) : "";
 }
 
 function extractDescription(text: string): string {
@@ -77,6 +69,13 @@ function extractDescription(text: string): string {
     .map((l) => l.trim())
     .filter((l) => l.length > 3 && !/^\d/.test(l));
   return (lines[0] ?? "").slice(0, 60);
+}
+
+// ── ReceiptModal (per scontrini su spese già salvate) ─────────────────────────
+interface ReceiptModalProps {
+  expense: Expense;
+  onClose: () => void;
+  onSaved: () => void;
 }
 
 function ReceiptModal({ expense, onClose, onSaved }: ReceiptModalProps) {
@@ -103,11 +102,8 @@ function ReceiptModal({ expense, onClose, onSaved }: ReceiptModalProps) {
         const desc = extractDescription(data.text);
         if (extracted) setAmount(extracted);
         if (desc && !expense.description) setDescription(desc);
-      } catch {
-        // OCR failed silently — user can fill in manually
-      } finally {
-        setOcring(false);
-      }
+      } catch { /* OCR silent fail */ }
+      finally { setOcring(false); }
     }
   };
 
@@ -157,44 +153,21 @@ function ReceiptModal({ expense, onClose, onSaved }: ReceiptModalProps) {
         {expense.receiptUrl && (
           <div style={{ marginBottom: "var(--space)" }}>
             <p className="page__hint" style={{ textAlign: "left", marginBottom: 4 }}>Scontrino archiviato</p>
-            <img
-              src={`http://localhost:4000${expense.receiptUrl}`}
-              alt="Scontrino"
-              className="receipt-preview"
-            />
+            <img src={`http://localhost:4000${expense.receiptUrl}`} alt="Scontrino" className="receipt-preview" />
           </div>
         )}
 
-        <div
-          className={`receipt-dropzone${dragOver ? " drag-over" : ""}`}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        <ReceiptDropzone
+          id="receipt-modal-input"
+          preview={preview}
+          dragOver={dragOver}
+          onFile={processFile}
+          onDragOver={() => setDragOver(true)}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          onClick={() => document.getElementById("receipt-input")?.click()}
-        >
-          {preview ? (
-            <img src={preview} alt="Anteprima" className="receipt-preview" />
-          ) : (
-            <>
-              <Camera size={28} style={{ marginBottom: 8, opacity: 0.5 }} />
-              <p>Trascina o clicca per caricare lo scontrino</p>
-              <p style={{ fontSize: 11, marginTop: 4 }}>JPG, PNG, PDF — max 10 MB</p>
-            </>
-          )}
-          <input
-            id="receipt-input"
-            type="file"
-            accept="image/*,application/pdf"
-            style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
-          />
-        </div>
+        />
 
-        {ocring && (
-          <p className="page__hint" style={{ marginTop: "var(--space-sm)" }}>
-            Analisi scontrino…
-          </p>
-        )}
+        {ocring && <p className="page__hint" style={{ marginTop: "var(--space-sm)" }}>Analisi scontrino…</p>}
 
         <div className="form" style={{ marginTop: "var(--space)" }}>
           <label className="field">
@@ -210,43 +183,104 @@ function ReceiptModal({ expense, onClose, onSaved }: ReceiptModalProps) {
         {error && <p className="form__error" style={{ marginTop: "var(--space-sm)" }}>{error}</p>}
 
         <div className="list-item__actions" style={{ marginTop: "var(--space)" }}>
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={saving || ocring}
-            onClick={handleApply}
-          >
+          <button type="button" className="btn btn--primary" disabled={saving || ocring} onClick={handleApply}>
             {saving ? "Salvataggio…" : "Applica"}
           </button>
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
-            Chiudi
-          </button>
+          <button type="button" className="btn btn--ghost" onClick={onClose}>Chiudi</button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── Shared dropzone component ──────────────────────────────────────────────────
+interface DropzoneProps {
+  id: string;
+  preview: string | null;
+  dragOver: boolean;
+  onFile: (f: File) => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: (e: DragEvent<HTMLDivElement>) => void;
+}
+
+function ReceiptDropzone({ id, preview, dragOver, onFile, onDragOver, onDragLeave, onDrop }: DropzoneProps) {
+  return (
+    <div
+      className={`receipt-dropzone${dragOver ? " drag-over" : ""}`}
+      onDragOver={(e) => { e.preventDefault(); onDragOver(); }}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onClick={() => document.getElementById(id)?.click()}
+    >
+      {preview ? (
+        <img src={preview} alt="Anteprima" className="receipt-preview" />
+      ) : (
+        <>
+          <Camera size={28} style={{ marginBottom: 8, opacity: 0.5 }} />
+          <p>Trascina o clicca per caricare lo scontrino</p>
+          <p style={{ fontSize: 11, marginTop: 4 }}>JPG, PNG, PDF — max 10 MB</p>
+        </>
+      )}
+      <input
+        id={id}
+        type="file"
+        accept="image/*,application/pdf"
+        style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }}
+      />
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export function ExpenseManager() {
-  const { user } = useAuth();
   const { format, symbol } = useCurrency();
-  const isFamily = user?.profileType === "FAMILY";
   const { data: categories } = useFetch(expenseApi.listCategories, []);
   const { data: familyMembers } = useFetch(profileApi.listFamilyMembers, []);
-  const {
-    data: expenses,
-    loading,
-    error,
-    reload,
-  } = useFetch(expenseApi.listExpenses, []);
+  const { data: expenses, loading, error, reload } = useFetch(expenseApi.listExpenses, []);
+
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [receiptExpense, setReceiptExpense] = useState<Expense | null>(null);
 
+  // Receipt state in the creation form
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptDragOver, setReceiptDragOver] = useState(false);
+  const [ocring, setOcring] = useState(false);
+
+  const processReceiptInForm = async (f: File) => {
+    setReceiptFile(f);
+    if (f.type.startsWith("image/")) {
+      setReceiptPreview(URL.createObjectURL(f));
+      setOcring(true);
+      try {
+        const worker = await createWorker("ita");
+        const { data } = await worker.recognize(f);
+        await worker.terminate();
+        const amount = extractAmount(data.text);
+        const desc = extractDescription(data.text);
+        setForm((prev) => ({
+          ...prev,
+          ...(amount ? { amount } : {}),
+          ...(desc && !prev.name ? { name: desc } : {}),
+          ...(desc && !prev.description ? { description: desc } : {}),
+        }));
+      } catch { /* silent */ }
+      finally { setOcring(false); }
+    }
+  };
+
+  const clearReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
   const startEdit = (expense: Expense) => {
     setEditingId(expense.id);
+    clearReceipt();
     setForm({
       name: expense.name,
       description: expense.description ?? "",
@@ -266,6 +300,7 @@ export function ExpenseManager() {
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    clearReceipt();
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -277,7 +312,7 @@ export function ExpenseManager() {
         description: form.description || undefined,
         kind: form.kind,
         categoryId: form.categoryId || undefined,
-        memberId: isFamily && form.memberId ? form.memberId : undefined,
+        memberId: form.memberId || undefined,
         amount: Number(form.amount),
         frequency: form.frequency,
         utility: Number(form.utility) as UtilityLevel,
@@ -293,8 +328,10 @@ export function ExpenseManager() {
 
       if (editingId) {
         await expenseApi.updateExpense(editingId, payload);
+        if (receiptFile) await expenseApi.uploadReceipt(editingId, receiptFile);
       } else {
-        await expenseApi.createExpense(payload as Omit<Expense, "id">);
+        const created = await expenseApi.createExpense(payload as Omit<Expense, "id">);
+        if (receiptFile) await expenseApi.uploadReceipt(created.id, receiptFile);
       }
       resetForm();
       reload();
@@ -309,11 +346,41 @@ export function ExpenseManager() {
     reload();
   };
 
+  const hasFamilyMembers = familyMembers && familyMembers.length > 0;
+
   return (
     <>
       <div className="card">
         <h2>{editingId ? "Modifica uscita" : "Nuova uscita"}</h2>
         <form className="form" onSubmit={handleSubmit}>
+
+          {/* Scontrino in cima — pre-compila il form */}
+          <div style={{ marginBottom: "var(--space)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-subtle)" }}>
+                <Camera size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                Scansiona scontrino{" "}
+                <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(opzionale — pre-compila i campi)</span>
+              </span>
+              {receiptFile && (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={clearReceipt}>
+                  <X size={12} /> Rimuovi
+                </button>
+              )}
+            </div>
+            <ReceiptDropzone
+              id="form-receipt-input"
+              preview={receiptPreview}
+              dragOver={receiptDragOver}
+              onFile={processReceiptInForm}
+              onDragOver={() => setReceiptDragOver(true)}
+              onDragLeave={() => setReceiptDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setReceiptDragOver(false); const f = e.dataTransfer.files[0]; if (f) processReceiptInForm(f); }}
+            />
+            {ocring && <p className="page__hint" style={{ marginTop: 4 }}>Analisi scontrino in corso…</p>}
+          </div>
+
+          {/* Nome, categoria, tipo */}
           <div className="form-row">
             <label className="field">
               <span>Nome</span>
@@ -325,22 +392,14 @@ export function ExpenseManager() {
             </label>
             <label className="field">
               <span>Categoria</span>
-              <select
-                value={form.categoryId}
-                onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              >
+              <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
                 <option value="">Nessuna</option>
-                {categories?.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
             <label className="field">
               <span>Tipo</span>
-              <select
-                value={form.kind}
-                onChange={(e) => setForm({ ...form, kind: e.target.value as ExpenseKind })}
-              >
+              <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as ExpenseKind })}>
                 <option value="FIXED">Fissa</option>
                 <option value="VARIABLE">Variabile</option>
               </select>
@@ -349,19 +408,15 @@ export function ExpenseManager() {
 
           <label className="field">
             <span>Descrizione</span>
-            <input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
+            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </label>
 
+          {/* Importo e utilità */}
           <div className="form-row">
             <label className="field">
               <span>Importo ({symbol})</span>
               <input
-                type="number"
-                min={0}
-                step="0.01"
+                type="number" min={0} step="0.01"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 required
@@ -369,17 +424,13 @@ export function ExpenseManager() {
             </label>
             <label className="field">
               <span>Utilità (1–5)</span>
-              <select
-                value={form.utility}
-                onChange={(e) => setForm({ ...form, utility: e.target.value })}
-              >
-                {[1, 2, 3, 4, 5].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
+              <select value={form.utility} onChange={(e) => setForm({ ...form, utility: e.target.value })}>
+                {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </label>
           </div>
 
+          {/* Ricorrenza */}
           <label className="field field--checkbox">
             <input
               type="checkbox"
@@ -393,87 +444,59 @@ export function ExpenseManager() {
             <div className="form-row">
               <label className="field">
                 <span>Frequenza</span>
-                <select
-                  value={form.frequency}
-                  onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}
-                >
-                  {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
+                <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}>
+                  {Object.entries(FREQUENCY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </label>
               <label className="field">
                 <span>Inizio ricorrenza</span>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                />
+                <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
               </label>
               <label className="field">
                 <span>
                   Fine ricorrenza{" "}
-                  <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
-                    {form.endDate ? "" : "(indefinita)"}
-                  </span>
+                  <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>{form.endDate ? "" : "(indefinita)"}</span>
                 </span>
-                <input
-                  type="date"
-                  value={form.endDate}
-                  min={form.startDate || undefined}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                />
+                <input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </label>
             </div>
           ) : (
             <label className="field">
               <span>Data</span>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                required
-              />
+              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
             </label>
           )}
 
-          {isFamily && (
+          {/* Imputazione membro — visibile sempre se esistono membri */}
+          {hasFamilyMembers && (
             <label className="field">
               <span>Imputa a</span>
-              <select
-                value={form.memberId}
-                onChange={(e) => setForm({ ...form, memberId: e.target.value })}
-              >
-                <option value="">Nucleo familiare (generica)</option>
-                {familyMembers?.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.firstName} {m.lastName}
-                  </option>
+              <select value={form.memberId} onChange={(e) => setForm({ ...form, memberId: e.target.value })}>
+                <option value="">Famiglia (spesa condivisa)</option>
+                {familyMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
                 ))}
               </select>
             </label>
           )}
 
           <div className="list-item__actions">
-            <button type="submit" className="btn btn--primary" disabled={submitting}>
-              {editingId ? "Salva modifiche" : "Aggiungi uscita"}
+            <button type="submit" className="btn btn--primary" disabled={submitting || ocring}>
+              {submitting ? "Salvataggio…" : editingId ? "Salva modifiche" : "Aggiungi uscita"}
             </button>
             {editingId && (
-              <button type="button" className="btn btn--ghost" onClick={resetForm}>
-                Annulla
-              </button>
+              <button type="button" className="btn btn--ghost" onClick={resetForm}>Annulla</button>
             )}
           </div>
         </form>
       </div>
 
+      {/* Lista uscite */}
       <div className="card">
         <h2>Uscite registrate</h2>
         {loading && <p className="page__hint">Caricamento…</p>}
         {error && <p className="form__error">{error}</p>}
-        {expenses && expenses.length === 0 && (
-          <p className="empty-state">Nessuna uscita registrata.</p>
-        )}
+        {expenses && expenses.length === 0 && <p className="empty-state">Nessuna uscita registrata.</p>}
         <div className="list">
           {expenses?.map((expense) => (
             <div className="list-item" key={expense.id}>
@@ -481,56 +504,31 @@ export function ExpenseManager() {
                 <span className="list-item__title">
                   {expense.name}{" "}
                   {expense.receiptUrl && (
-                    <Paperclip
-                      size={12}
-                      style={{ display: "inline", verticalAlign: "middle", color: "var(--text-muted)", marginLeft: 4 }}
-                    />
+                    <Paperclip size={12} style={{ display: "inline", verticalAlign: "middle", color: "var(--text-muted)", marginLeft: 4 }} />
                   )}
-                  <span className={`badge badge--utility-${expense.utility}`}>
-                    {expense.utility}/5
-                  </span>
+                  <span className={`badge badge--utility-${expense.utility}`}>{expense.utility}/5</span>
                 </span>
                 <span className="list-item__meta">
-                  {expense.kind === "FIXED" ? "Fissa" : "Variabile"} ·{" "}
-                  {format(expense.amount)} /{" "}
-                  {FREQUENCY_LABELS[expense.frequency].toLowerCase()}
+                  {expense.kind === "FIXED" ? "Fissa" : "Variabile"} · {format(expense.amount)}
+                  {expense.isRecurring && ` / ${FREQUENCY_LABELS[expense.frequency].toLowerCase()}`}
                   {expense.isRecurring
                     ? expense.startDate && expense.endDate
                       ? ` · dal ${fmtDate(expense.startDate)} al ${fmtDate(expense.endDate)}`
                       : expense.startDate
                         ? ` · dal ${fmtDate(expense.startDate)} · senza scadenza`
                         : " · senza scadenza"
-                    : expense.date
-                      ? ` · ${fmtDate(expense.date)}`
-                      : ""}
+                    : expense.date ? ` · ${fmtDate(expense.date)}` : ""}
                   {expense.memberId &&
                     ` · ${familyMembers?.find((m) => m.id === expense.memberId)?.firstName ?? "membro"}`}
                 </span>
               </div>
               <div className="list-item__actions">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  title="Scontrino"
-                  onClick={() => setReceiptExpense(expense)}
-                >
+                <button type="button" className="btn btn--ghost btn--sm" title="Scontrino" onClick={() => setReceiptExpense(expense)}>
                   <Camera size={14} />
                   Scontrino
                 </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => startEdit(expense)}
-                >
-                  Modifica
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
-                  onClick={() => handleDelete(expense.id)}
-                >
-                  Elimina
-                </button>
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => startEdit(expense)}>Modifica</button>
+                <button type="button" className="btn btn--danger btn--sm" onClick={() => handleDelete(expense.id)}>Elimina</button>
               </div>
             </div>
           ))}
@@ -538,11 +536,7 @@ export function ExpenseManager() {
       </div>
 
       {receiptExpense && (
-        <ReceiptModal
-          expense={receiptExpense}
-          onClose={() => setReceiptExpense(null)}
-          onSaved={reload}
-        />
+        <ReceiptModal expense={receiptExpense} onClose={() => setReceiptExpense(null)} onSaved={reload} />
       )}
     </>
   );
