@@ -68,42 +68,34 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-user__avatar">{initials}</div>
-            <div className="sidebar-user__info">
-              <div className="sidebar-user__name">
-                {user?.firstName} {user?.lastName}
-              </div>
-              <div className="sidebar-user__email">{user?.email}</div>
-            </div>
-            <button
-              type="button"
-              className="sidebar-logout"
-              onClick={logout}
-              title="Esci"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* ── Main ── */}
       <div className="app-main">
         <header className="app-topbar">
           <span className="app-topbar__title">{pageTitle}</span>
-          <button
-            type="button"
-            className="topbar-profile-btn"
-            onClick={() => navigate("/profilo")}
-            title="Il mio profilo"
-          >
-            <div className="topbar-profile-btn__avatar">{initials}</div>
-            <span className="topbar-profile-btn__name">
-              {user?.firstName} {user?.lastName}
-            </span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+            <button
+              type="button"
+              className="topbar-profile-btn"
+              onClick={() => navigate("/profilo")}
+              title="Il mio profilo"
+            >
+              <div className="topbar-profile-btn__avatar">{initials}</div>
+              <span className="topbar-profile-btn__name">
+                {user?.firstName} {user?.lastName}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={logout}
+              title="Esci"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </header>
 
         <main className="app-content">
