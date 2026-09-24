@@ -1369,3 +1369,45 @@ body {
   padding: 0 5px;
   margin-left: 4px;
 }
+
+/* ── Time navigator ── */
+.time-navigator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+}
+.time-navigator__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+  flex-shrink: 0;
+}
+.time-navigator__btn:hover:not(:disabled) {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.time-navigator__btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.time-navigator__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 160px;
+  text-align: center;
+  padding: 0 4px;
+  white-space: nowrap;
+}
