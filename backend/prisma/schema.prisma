@@ -1,0 +1,150 @@
+// Schema dati MyBudget - vedi README.md per i requisiti funzionali.
+// Provider SQLite per lo sviluppo locale: per PostgreSQL basta cambiare provider e DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  profileType  String   @default("INDIVIDUAL") // INDIVIDUAL | FAMILY
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  familyMembers FamilyMember[]
+  housing       Housing?
+  incomes       Income[]
+  passiveIncomes PassiveIncome[]
+  expenses      Expense[]
+  loans         Loan[]
+  simulations   Simulation[]
+}
+
+model FamilyMember {
+  id            String  @id @default(cuid())
+  userId        String
+  firstName     String
+  lastName      String
+  role          String // SPOUSE | CHILD | PARENT | OTHER
+  producesIncome Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Housing {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  type           String // OWNED | MORTGAGE | RENT
+  propertyValue  Float?
+  mortgagePayment Float?
+  mortgageYears  Int?
+  rentAmount     Float?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Income {
+  id                String  @id @default(cuid())
+  userId            String
+  employmentType    String // EMPLOYEE | FREELANCER | VAT | RETIRED | OTHER
+  netMonthly        Float   @default(0)
+  grossMonthly      Float   @default(0)
+  thirteenthSalary  Float?
+  fourteenthSalary  Float?
+  annualBonus       Float?
+  taxRate           Float? // % per professionisti / partita IVA
+  taxFrequency      String? // MONTHLY | QUARTERLY | YEARLY
+  taxSetAside       Float?
+  memberId          String? // opzionale: reddito di un membro del nucleo
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PassiveIncome {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String // RENT | DIVIDEND | FUND | INVESTMENT | PENSION | OTHER
+  description String
+  amount      Float
+  frequency   String // DAILY | WEEKLY | MONTHLY | YEARLY
+  startDate   DateTime
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id       String @id @default(cuid())
+  name     String @unique
+  macroArea String // HOME | CAR | SPORT | FAMILY | INVESTMENT | LEISURE | OTHER
+  isDefault Boolean @default(true)
+
+  expenses Expense[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  categoryId  String?
+  name        String
+  description String?
+  kind        String // FIXED | VARIABLE
+  amount      Float
+  frequency   String // DAILY | WEEKLY | MONTHLY | YEARLY
+  utility     Int      @default(3) // 1 superflua ... 5 essenziale
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model Loan {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  description    String?
+  totalAmount    Float
+  monthlyPayment Float
+  startDate      DateTime
+  endDate        DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Simulation {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  payload   String // JSON con gli scenari applicati
+  result    String // JSON con l'esito calcolato
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

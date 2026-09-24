@@ -1,0 +1,104 @@
+/* Design tokens + base mobile-first. I componenti aggiungono i propri stili
+   in src/styles/ oppure in file CSS module accanto al componente. */
+
+:root {
+  --color-bg: #0f1220;
+  --color-surface: #191d31;
+  --color-text: #f4f5fb;
+  --color-muted: #a2a8c3;
+  --color-accent: #4ade80;
+  --color-danger: #f87171;
+  --radius: 12px;
+  --space: 16px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  padding: var(--space);
+  border-bottom: 1px solid #ffffff14;
+}
+
+.app-logo {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.app-content {
+  flex: 1;
+  padding: var(--space);
+  padding-bottom: 88px;
+}
+
+.app-nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 8px;
+  background: var(--color-surface);
+  border-top: 1px solid #ffffff14;
+  overflow-x: auto;
+}
+
+.app-nav__link {
+  color: var(--color-muted);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 8px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.app-nav__link.active {
+  color: var(--color-accent);
+  background: #4ade801a;
+}
+
+.page__hint {
+  color: var(--color-muted);
+}
+
+/* Desktop: navigazione laterale */
+@media (min-width: 900px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-areas: 'nav header' 'nav content';
+    grid-template-rows: auto 1fr;
+  }
+
+  .app-header {
+    grid-area: header;
+  }
+
+  .app-content {
+    grid-area: content;
+    padding-bottom: var(--space);
+  }
+
+  .app-nav {
+    position: static;
+    grid-area: nav;
+    flex-direction: column;
+    justify-content: flex-start;
+    border-top: none;
+    border-right: 1px solid #ffffff14;
+  }
+}

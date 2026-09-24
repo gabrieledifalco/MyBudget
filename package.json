@@ -1,0 +1,29 @@
+{
+  "name": "mybudget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Financial Planner App - monolite con frontend e backend separati",
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n BE,FE -c blue,magenta \"npm:dev:be\" \"npm:dev:fe\"",
+    "dev:be": "npm run dev --workspace backend",
+    "dev:fe": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "db:migrate": "npm run db:migrate --workspace backend",
+    "db:seed": "npm run db:seed --workspace backend",
+    "db:studio": "npm run db:studio --workspace backend",
+    "lint": "npm run lint --workspaces --if-present",
+    "setup": "npm install && npm run db:migrate && npm run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

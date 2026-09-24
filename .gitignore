@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+*.local
+
+# database SQLite locale
+*.db
+*.db-journal
+*.sqlite
+
+# log
+*.log
+npm-debug.log*
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
