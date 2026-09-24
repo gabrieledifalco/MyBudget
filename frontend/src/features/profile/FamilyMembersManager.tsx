@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import * as profileApi from "@/api/profile.api";
 import { useFetch } from "@/hooks/useFetch";
-import type { FamilyRole } from "@/types/domain";
+import type { FamilyMember, FamilyRole } from "@/types/domain";
 
 const ROLE_LABELS: Record<FamilyRole, string> = {
   SPOUSE: "Coniuge",
@@ -26,14 +26,34 @@ export function FamilyMembersManager() {
     reload,
   } = useFetch(profileApi.listFamilyMembers, []);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const startEdit = (member: FamilyMember) => {
+    setEditingId(member.id);
+    setForm({
+      firstName: member.firstName,
+      lastName: member.lastName,
+      role: member.role,
+      producesIncome: member.producesIncome,
+    });
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await profileApi.createFamilyMember(form);
-      setForm(emptyForm);
+      if (editingId) {
+        await profileApi.updateFamilyMember(editingId, form);
+      } else {
+        await profileApi.createFamilyMember(form);
+      }
+      resetForm();
       reload();
     } finally {
       setSubmitting(false);
@@ -42,6 +62,7 @@ export function FamilyMembersManager() {
 
   const handleDelete = async (id: string) => {
     await profileApi.deleteFamilyMember(id);
+    if (editingId === id) resetForm();
     reload();
   };
 
@@ -94,13 +115,24 @@ export function FamilyMembersManager() {
           <span>Produce reddito</span>
         </label>
 
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={submitting}
-        >
-          Aggiungi membro
-        </button>
+        <div className="list-item__actions">
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={submitting}
+          >
+            {editingId ? "Salva modifiche" : "Aggiungi membro"}
+          </button>
+          {editingId && (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={resetForm}
+            >
+              Annulla
+            </button>
+          )}
+        </div>
       </form>
 
       {loading && <p className="page__hint">Caricamento…</p>}
@@ -121,6 +153,13 @@ export function FamilyMembersManager() {
               </span>
             </div>
             <div className="list-item__actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => startEdit(member)}
+              >
+                Modifica
+              </button>
               <button
                 type="button"
                 className="btn btn--danger btn--sm"
