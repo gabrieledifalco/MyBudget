@@ -1,5 +1,5 @@
-import { Camera, Paperclip, X } from "lucide-react";
-import { useRef, useState, type DragEvent, type FormEvent } from "react";
+import { Camera, Paperclip, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { createWorker } from "tesseract.js";
 
 import * as expenseApi from "@/api/expense.api";
@@ -245,6 +245,67 @@ export function ExpenseManager() {
   const [submitting, setSubmitting] = useState(false);
   const [receiptExpense, setReceiptExpense] = useState<Expense | null>(null);
 
+  // ── Agente expense-classifier ───────────────────────────────────────────────
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null);
+  // Campi proposti dall'agente: il segno sparisce appena l'utente li tocca.
+  const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    expenseApi.classifierEnabled().then(setAiEnabled).catch(() => setAiEnabled(false));
+  }, []);
+
+  const clearAiMark = (field: string) =>
+    setAiFields((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+
+  const aiMark = (field: string) =>
+    aiFields.has(field) ? { borderColor: "var(--accent)" } : undefined;
+
+  const runClassifier = async (text: string, source: "MANUAL_INPUT" | "RECEIPT_OCR") => {
+    if (text.trim().length < 3) return;
+    setAiBusy(true);
+    setAiError(null);
+    setAiReasoning(null);
+    try {
+      const r = await expenseApi.classify(text, source);
+      const filled = new Set<string>(["kind", "frequency", "utility"]);
+      setForm((f) => ({
+        ...f,
+        name: r.name || f.name,
+        kind: r.kind,
+        frequency: r.frequency,
+        utility: String(r.utility),
+        ...(r.amount !== null ? { amount: String(r.amount) } : {}),
+        ...(r.categoryId ? { categoryId: r.categoryId } : {}),
+      }));
+      if (r.name) filled.add("name");
+      if (r.amount !== null) filled.add("amount");
+      if (r.categoryId) filled.add("categoryId");
+      setAiFields(filled);
+      setAiReasoning(r.reasoning);
+      if (r.confidence < 0.5) {
+        setAiError("Interpretazione incerta: controlla i campi prima di salvare.");
+      }
+    } catch (err) {
+      const status = (err as { response?: { status?: number } }).response?.status;
+      setAiError(
+        status === 502 || status === 503
+          ? "Il classificatore non e raggiungibile. Compila i campi a mano."
+          : "Non sono riuscito a interpretare il testo. Compila i campi a mano.",
+      );
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   // Receipt state in the creation form
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -260,14 +321,19 @@ export function ExpenseManager() {
         const worker = await createWorker("ita");
         const { data } = await worker.recognize(f);
         await worker.terminate();
-        const amount = extractAmount(data.text);
-        const desc = extractDescription(data.text);
-        setForm((prev) => ({
-          ...prev,
-          ...(amount ? { amount } : {}),
-          ...(desc && !prev.name ? { name: desc } : {}),
-          ...(desc && !prev.description ? { description: desc } : {}),
-        }));
+        if (aiEnabled) {
+          // L'agente interpreta il testo dello scontrino: l'OCR resta, le regex no.
+          await runClassifier(data.text, "RECEIPT_OCR");
+        } else {
+          const amount = extractAmount(data.text);
+          const desc = extractDescription(data.text);
+          setForm((prev) => ({
+            ...prev,
+            ...(amount ? { amount } : {}),
+            ...(desc && !prev.name ? { name: desc } : {}),
+            ...(desc && !prev.description ? { description: desc } : {}),
+          }));
+        }
       } catch { /* silent */ }
       finally { setOcring(false); }
     }
@@ -300,6 +366,10 @@ export function ExpenseManager() {
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setAiText("");
+    setAiFields(new Set());
+    setAiReasoning(null);
+    setAiError(null);
     clearReceipt();
   };
 
@@ -354,6 +424,44 @@ export function ExpenseManager() {
         <h2>{editingId ? "Modifica uscita" : "Nuova uscita"}</h2>
         <form className="form" onSubmit={handleSubmit}>
 
+          {/* Agente expense-classifier — descrivi la spesa a parole */}
+          {aiEnabled && !editingId && (
+            <div style={{ marginBottom: "var(--space)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-subtle)" }}>
+                <Sparkles size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                Descrivi la spesa{" "}
+                <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(opzionale — compila i campi per te)</span>
+              </span>
+              <div style={{ display: "flex", gap: 8, marginTop: "var(--space-sm)" }}>
+                <input
+                  value={aiText}
+                  onChange={(e) => setAiText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void runClassifier(aiText, "MANUAL_INPUT");
+                    }
+                  }}
+                  placeholder="es. abbonamento palestra 50 euro al mese"
+                  style={{ flex: 1 }}
+                  disabled={aiBusy}
+                />
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  disabled={aiBusy || aiText.trim().length < 3}
+                  onClick={() => void runClassifier(aiText, "MANUAL_INPUT")}
+                >
+                  {aiBusy ? "…" : "Compila"}
+                </button>
+              </div>
+              {aiReasoning && (
+                <p className="page__hint" style={{ marginTop: 4 }}>Utilità proposta: {aiReasoning}</p>
+              )}
+              {aiError && <p className="form__error" style={{ marginTop: 4 }}>{aiError}</p>}
+            </div>
+          )}
+
           {/* Scontrino in cima — pre-compila il form */}
           <div style={{ marginBottom: "var(--space)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-sm)" }}>
@@ -386,20 +494,21 @@ export function ExpenseManager() {
               <span>Nome</span>
               <input
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                style={aiMark("name")}
+                onChange={(e) => { clearAiMark("name"); setForm({ ...form, name: e.target.value }); }}
                 required
               />
             </label>
             <label className="field">
               <span>Categoria</span>
-              <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+              <select style={aiMark("categoryId")} value={form.categoryId} onChange={(e) => { clearAiMark("categoryId"); setForm({ ...form, categoryId: e.target.value }); }}>
                 <option value="">Nessuna</option>
                 {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </label>
             <label className="field">
               <span>Tipo</span>
-              <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as ExpenseKind })}>
+              <select style={aiMark("kind")} value={form.kind} onChange={(e) => { clearAiMark("kind"); setForm({ ...form, kind: e.target.value as ExpenseKind }); }}>
                 <option value="FIXED">Fissa</option>
                 <option value="VARIABLE">Variabile</option>
               </select>
@@ -418,13 +527,14 @@ export function ExpenseManager() {
               <input
                 type="number" min={0} step="0.01"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                style={aiMark("amount")}
+                onChange={(e) => { clearAiMark("amount"); setForm({ ...form, amount: e.target.value }); }}
                 required
               />
             </label>
             <label className="field">
               <span>Utilità (1–5)</span>
-              <select value={form.utility} onChange={(e) => setForm({ ...form, utility: e.target.value })}>
+              <select style={aiMark("utility")} value={form.utility} onChange={(e) => { clearAiMark("utility"); setForm({ ...form, utility: e.target.value }); }}>
                 {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </label>
@@ -444,7 +554,7 @@ export function ExpenseManager() {
             <div className="form-row">
               <label className="field">
                 <span>Frequenza</span>
-                <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value as Frequency })}>
+                <select style={aiMark("frequency")} value={form.frequency} onChange={(e) => { clearAiMark("frequency"); setForm({ ...form, frequency: e.target.value as Frequency }); }}>
                   {Object.entries(FREQUENCY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </label>

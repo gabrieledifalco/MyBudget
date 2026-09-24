@@ -3,12 +3,14 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 import * as expenseService from "../services/expense.service.js";
+import * as classifierService from "../services/classifier.service.js";
 import {
   expenseSchema,
   expenseFiltersSchema,
   updateExpenseSchema,
   loanSchema,
   updateLoanSchema,
+  classifySchema,
 } from "../validators/expense.schema.js";
 import { asyncHandler } from "../utils/httpError.js";
 
@@ -82,4 +84,15 @@ export const updateLoan = asyncHandler(async (req, res) => {
 export const removeLoan = asyncHandler(async (req, res) => {
   await expenseService.deleteLoan(req.user.id, req.params.id);
   res.status(204).send();
+});
+
+// Agente expense-classifier: interpreta una descrizione libera o il testo di
+// uno scontrino e propone i campi del form. Vedi agents/definitions/.
+export const classifierStatus = asyncHandler(async (_req, res) => {
+  res.json({ enabled: classifierService.isEnabled() });
+});
+
+export const classify = asyncHandler(async (req, res) => {
+  const data = classifySchema.parse(req.body);
+  res.json(await classifierService.classify(data));
 });

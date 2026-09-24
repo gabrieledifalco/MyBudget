@@ -39,3 +39,8 @@ export const expenseFiltersSchema = z.object({
   dateTo: z.coerce.date().optional(),
   utility: z.coerce.number().int().min(1).max(5).optional(),
 });
+
+export const classifySchema = z.object({
+  text: z.string().min(3).max(4000),
+  source: z.enum(["MANUAL_INPUT", "RECEIPT_OCR"]).default("MANUAL_INPUT"),
+});

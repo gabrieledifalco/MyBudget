@@ -1,5 +1,11 @@
 import { api } from "./client";
-import type { Category, Expense, Loan } from "@/types/domain";
+import type {
+  Category,
+  Expense,
+  ExpenseKind,
+  Frequency,
+  Loan,
+} from "@/types/domain";
 
 export interface ExpenseFilters {
   categoryId?: string;
@@ -73,4 +79,32 @@ export async function updateLoan(
 
 export async function deleteLoan(id: string): Promise<void> {
   await api.delete(`/expenses/loans/${id}`);
+}
+
+// ── Agente expense-classifier ─────────────────────────────────────────────────
+
+export interface Classification {
+  name: string;
+  amount: number | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  kind: ExpenseKind;
+  frequency: Frequency;
+  utility: number;
+  reasoning: string;
+  confidence: number;
+}
+
+/** Se false il backend non ha la API key: il campo va nascosto. */
+export async function classifierEnabled(): Promise<boolean> {
+  const { data } = await api.get<{ enabled: boolean }>("/expenses/classify/status");
+  return data.enabled;
+}
+
+export async function classify(
+  text: string,
+  source: "MANUAL_INPUT" | "RECEIPT_OCR" = "MANUAL_INPUT",
+): Promise<Classification> {
+  const { data } = await api.post<Classification>("/expenses/classify", { text, source });
+  return data;
 }

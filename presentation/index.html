@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyBudget · Financial Planner</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main id="deck">
+      <!-- 1. Copertina -->
+      <section class="slide slide--cover">
+        <p class="eyebrow">Hackathon <span class="gt">&gt;</span> Financial Planner</p>
+        <h1>MyBudget</h1>
+        <p class="lead">
+          Una visione completa di entrate e uscite, e consigli concreti per risparmiare di più.
+        </p>
+        <p class="byline">Accenture</p>
+      </section>
+
+      <!-- 2. Il problema -->
+      <section class="slide">
+        <h2>Il problema</h2>
+        <p class="lead">
+          Le persone sanno quanto guadagnano. Quasi nessuno sa davvero dove finiscono i soldi.
+        </p>
+        <ul class="bullets">
+          <li>Le spese piccole e ricorrenti sono invisibili nel bilancio mensile.</li>
+          <li>Un caffè al giorno da 1,50 € non sembra nulla: sono 547 € l'anno.</li>
+          <li>Mancano strumenti che dicano <em>quale</em> spesa tagliare, non solo quanto si è speso.</li>
+        </ul>
+      </section>
+
+      <!-- 3. La soluzione -->
+      <section class="slide">
+        <h2>La soluzione</h2>
+        <p class="lead">
+          Un'unica applicazione che raccoglie il quadro finanziario completo e lo trasforma in
+          decisioni.
+        </p>
+        <div class="grid grid--3">
+          <article class="tile">
+            <h3>Monitora</h3>
+            <p>Entrate, spese fisse e variabili, finanziamenti, rendite. Vista giornaliera, mensile e annuale.</p>
+          </article>
+          <article class="tile">
+            <h3>Analizza</h3>
+            <p>Incidenza delle spese, percentuale di risparmio, stabilità del reddito, Financial Health Score.</p>
+          </article>
+          <article class="tile">
+            <h3>Suggerisce</h3>
+            <p>Individua le spese superflue e mostra l'impatto annuale di ogni abitudine.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- 4. L'idea distintiva -->
+      <section class="slide">
+        <h2>L'indice di utilità</h2>
+        <p class="lead">
+          Ogni spesa porta con sé un valore da 1 a 5. È questo che permette di dare consigli sensati
+          invece di generiche esortazioni al risparmio.
+        </p>
+        <table class="table">
+          <thead>
+            <tr><th>Valore</th><th>Significato</th><th>Effetto sui suggerimenti</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Superflua</td><td>candidata primaria al taglio</td></tr>
+            <tr><td>2</td><td>Poco utile</td><td>segnalata con impatto annuo</td></tr>
+            <tr><td>3</td><td>Moderatamente utile</td><td>monitorata</td></tr>
+            <tr><td>4</td><td>Utile</td><td>nessuna azione</td></tr>
+            <tr><td>5</td><td>Essenziale</td><td>protetta dai tagli</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 5. Caso d'uso -->
+      <section class="slide">
+        <h2>Dal dato al consiglio</h2>
+        <div class="case">
+          <div class="case__col">
+            <p class="case__label">L'utente registra</p>
+            <p class="case__value">Fumo · 6 €/giorno</p>
+            <p class="case__note">utilità 1 — superflua</p>
+          </div>
+          <div class="case__arrow" aria-hidden="true">&gt;</div>
+          <div class="case__col">
+            <p class="case__label">L'app risponde</p>
+            <p class="case__value">2.190 € l'anno</p>
+            <p class="case__note">risparmio mensile da 250 € a 430 €</p>
+          </div>
+        </div>
+        <p class="lead">
+          Il simulatore permette di provare lo scenario prima di cambiare abitudine: ridurre una
+          spesa del 10%, eliminarla, o incrementare il reddito.
+        </p>
+      </section>
+
+      <!-- 6. Architettura -->
+      <section class="slide">
+        <h2>Architettura</h2>
+        <p class="lead">
+          Monolite applicativo, frontend e backend nettamente separati: un solo deploy, zero
+          attrito fra i team.
+        </p>
+        <div class="grid grid--2">
+          <article class="tile">
+            <h3>Frontend</h3>
+            <p>React 18 + TypeScript, Vite. Mobile first, responsive, organizzato per feature.</p>
+          </article>
+          <article class="tile">
+            <h3>Backend</h3>
+            <p>Node.js + Express. Layer separati: route, controller, service, validator Zod.</p>
+          </article>
+          <article class="tile">
+            <h3>Dati</h3>
+            <p>Database relazionale via Prisma, con migrazioni versionate nel repository.</p>
+          </article>
+          <article class="tile">
+            <h3>Sicurezza</h3>
+            <p>Autenticazione JWT, password con hash bcrypt, recupero password a token con scadenza.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- 7. Struttura del repository -->
+      <section class="slide">
+        <h2>Struttura del repository</h2>
+        <pre class="code">
+/
+├── app/             la soluzione sviluppata
+│   ├── backend/     API REST Node.js
+│   └── frontend/    SPA React + TypeScript
+├── agents/          struttura agentica
+├── presentation/    questa presentazione
+└── README.md        specifica funzionale</pre>
+        <p class="lead">
+          Il contratto fra le due metà è una sola regola: il frontend chiama sempre
+          <code>/api/…</code>, il backend non conosce il frontend.
+        </p>
+      </section>
+
+      <!-- 8. Cosa funziona -->
+      <section class="slide">
+        <h2>Cosa funziona oggi</h2>
+        <ul class="bullets bullets--check">
+          <li>Registrazione, login, recupero e cambio password</li>
+          <li>Profilo finanziario: nucleo familiare, situazione abitativa, rendite passive</li>
+          <li>Entrate da lavoro con gestione della tassazione e storico delle variazioni</li>
+          <li>Spese fisse e variabili, finanziamenti, scontrini allegati</li>
+          <li>Dashboard con KPI giornalieri, mensili e annuali</li>
+          <li>Overview intelligente, suggerimenti automatici e Financial Health Score</li>
+          <li>Simulatore di risparmio con scenari salvabili</li>
+        </ul>
+      </section>
+
+      <!-- 9. Prossimi passi -->
+      <section class="slide">
+        <h2>Prossimi passi</h2>
+        <ul class="bullets">
+          <li>Categorizzazione automatica delle spese tramite agente AI</li>
+          <li>Importazione dei movimenti dal conto corrente</li>
+          <li>Obiettivi di risparmio con avanzamento e notifiche</li>
+          <li>Confronto anonimo con nuclei familiari simili</li>
+        </ul>
+      </section>
+
+      <!-- 10. Chiusura -->
+      <section class="slide slide--cover">
+        <h1>Grazie</h1>
+        <p class="lead">MyBudget <span class="gt">&gt;</span> sapere dove vanno i soldi è il primo passo per tenerne di più.</p>
+      </section>
+    </main>
+
+    <nav class="controls" aria-label="Navigazione presentazione">
+      <button id="prev" type="button" aria-label="Slide precedente">&larr;</button>
+      <span id="counter" class="counter">1 / 10</span>
+      <button id="next" type="button" aria-label="Slide successiva">&rarr;</button>
+    </nav>
+
+    <script src="assets/deck.js"></script>
+  </body>
+</html>

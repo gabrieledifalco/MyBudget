@@ -10,6 +10,10 @@ expenseRouter.use(requireAuth);
 
 expenseRouter.get("/categories", expenseController.listCategories);
 
+// Agente expense-classifier
+expenseRouter.get("/classify/status", expenseController.classifierStatus);
+expenseRouter.post("/classify", expenseController.classify);
+
 expenseRouter.get("/loans", expenseController.listLoans);
 expenseRouter.post("/loans", expenseController.createLoan);
 expenseRouter.patch("/loans/:id", expenseController.updateLoan);
