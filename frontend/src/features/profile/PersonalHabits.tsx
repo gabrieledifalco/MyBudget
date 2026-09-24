@@ -76,6 +76,8 @@ export function PersonalHabits({
         utility: habit.utility,
         categoryId: category?.id,
         memberId,
+        isRecurring: true,
+        date: new Date().toISOString(),
       });
       onChange();
     } finally {

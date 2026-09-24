@@ -56,6 +56,15 @@ export async function deleteExpense(userId, id) {
   await prisma.expense.delete({ where: { id } });
 }
 
+export async function saveReceiptUrl(userId, id, receiptUrl) {
+  await findOwnedExpense(userId, id);
+  return prisma.expense.update({
+    where: { id },
+    data: { receiptUrl },
+    include: { category: true, member: true },
+  });
+}
+
 export function listLoans(userId) {
   return prisma.loan.findMany({
     where: { userId },

@@ -19,3 +19,4 @@ expenseRouter.get("/", expenseController.list);
 expenseRouter.post("/", expenseController.create);
 expenseRouter.patch("/:id", expenseController.update);
 expenseRouter.delete("/:id", expenseController.remove);
+expenseRouter.post("/:id/receipt", expenseController.uploadReceipt);

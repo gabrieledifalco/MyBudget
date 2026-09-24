@@ -1,13 +1,17 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Filter,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 
 import * as dashboardApi from "@/api/dashboard.api";
+import * as expenseApi from "@/api/expense.api";
+import type { ExpenseFilters } from "@/api/expense.api";
 import * as insightsApi from "@/api/insights.api";
+import * as profileApi from "@/api/profile.api";
 import { DistributionChart } from "@/components/charts/DistributionChart";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { useCurrency } from "@/features/settings/CurrencyContext";
@@ -34,6 +38,10 @@ const TREND_LABELS: Record<TrendGranularity, string> = {
   month: "Mese",
   year: "Anno",
 };
+
+function countActiveFilters(f: ExpenseFilters): number {
+  return Object.values(f).filter((v) => v !== undefined && v !== "").length;
+}
 
 function HealthGauge({ score, label }: { score: number; label: string }) {
   const color =
@@ -137,6 +145,9 @@ export function DashboardPage() {
   const [period, setPeriod] = useState<Period>("monthly");
   const [trendGranularity, setTrendGranularity] =
     useState<TrendGranularity>("month");
+  const [showFilters, setShowFilters] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<ExpenseFilters>({});
+  const [activeFilters, setActiveFilters] = useState<ExpenseFilters>({});
 
   const summary = useFetch(dashboardApi.getSummary, []);
   const trend = useFetch(
@@ -147,8 +158,25 @@ export function DashboardPage() {
   const health = useFetch(insightsApi.getHealthScore, []);
   const analysis = useFetch(insightsApi.getAnalysis, []);
   const suggestions = useFetch(insightsApi.getSuggestions, []);
+  const filteredExpenses = useFetch(
+    () => expenseApi.listExpenses(activeFilters),
+    [activeFilters],
+  );
+  const { data: categories } = useFetch(expenseApi.listCategories, []);
+  const { data: familyMembers } = useFetch(profileApi.listFamilyMembers, []);
 
   const kpi = summary.data?.[period];
+  const activeFilterCount = countActiveFilters(activeFilters);
+
+  const applyFilters = () => {
+    setActiveFilters({ ...draftFilters });
+    setShowFilters(false);
+  };
+
+  const clearFilters = () => {
+    setDraftFilters({});
+    setActiveFilters({});
+  };
 
   return (
     <div className="page">
@@ -168,18 +196,111 @@ export function DashboardPage() {
             La tua situazione finanziaria al colpo d'occhio
           </p>
         </div>
-        <div className="tabs">
-          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-            <button
-              key={p}
-              className={`tab${period === p ? " active" : ""}`}
-              onClick={() => setPeriod(p)}
-            >
-              {PERIOD_LABELS[p]}
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className={`btn btn--ghost btn--sm${showFilters ? " active" : ""}`}
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            <Filter size={14} />
+            Filtra uscite
+            {activeFilterCount > 0 && (
+              <span className="filter-badge">{activeFilterCount}</span>
+            )}
+          </button>
+          <div className="tabs">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                className={`tab${period === p ? " active" : ""}`}
+                onClick={() => setPeriod(p)}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* ── Filter panel ── */}
+      {showFilters && (
+        <div className="filter-panel">
+          <div className="form-row">
+            <label className="field">
+              <span className="field__label">Data da</span>
+              <input
+                type="date"
+                value={draftFilters.dateFrom ?? ""}
+                onChange={(e) => setDraftFilters({ ...draftFilters, dateFrom: e.target.value || undefined })}
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Data a</span>
+              <input
+                type="date"
+                value={draftFilters.dateTo ?? ""}
+                onChange={(e) => setDraftFilters({ ...draftFilters, dateTo: e.target.value || undefined })}
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Importo min (€)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draftFilters.minAmount ?? ""}
+                onChange={(e) => setDraftFilters({ ...draftFilters, minAmount: e.target.value ? Number(e.target.value) : undefined })}
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Importo max (€)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draftFilters.maxAmount ?? ""}
+                onChange={(e) => setDraftFilters({ ...draftFilters, maxAmount: e.target.value ? Number(e.target.value) : undefined })}
+              />
+            </label>
+          </div>
+          <div className="form-row">
+            <label className="field">
+              <span className="field__label">Categoria</span>
+              <select
+                value={draftFilters.categoryId ?? ""}
+                onChange={(e) => setDraftFilters({ ...draftFilters, categoryId: e.target.value || undefined })}
+              >
+                <option value="">Tutte</option>
+                {categories?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            {familyMembers && familyMembers.length > 0 && (
+              <label className="field">
+                <span className="field__label">Membro famiglia</span>
+                <select
+                  value={draftFilters.memberId ?? ""}
+                  onChange={(e) => setDraftFilters({ ...draftFilters, memberId: e.target.value || undefined })}
+                >
+                  <option value="">Tutti</option>
+                  {familyMembers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+          <div className="list-item__actions">
+            <button type="button" className="btn btn--primary btn--sm" onClick={applyFilters}>
+              Applica filtri
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={clearFilters}>
+              Azzera
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── KPI row ── */}
       <div className="kpi-grid">
@@ -293,6 +414,11 @@ export function DashboardPage() {
             style={{ marginBottom: "var(--space)" }}
           >
             Distribuzione uscite
+            {activeFilterCount > 0 && filteredExpenses.data && (
+              <span className="filter-badge" style={{ marginLeft: 8 }}>
+                {filteredExpenses.data.length} filtrate
+              </span>
+            )}
           </h2>
           {distribution.data && distribution.data.length > 0 ? (
             <DistributionChart data={distribution.data} />

@@ -1,13 +1,22 @@
 import { api } from "./client";
 import type { Category, Expense, Loan } from "@/types/domain";
 
+export interface ExpenseFilters {
+  categoryId?: string;
+  memberId?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export async function listCategories(): Promise<Category[]> {
   const { data } = await api.get<Category[]>("/expenses/categories");
   return data;
 }
 
-export async function listExpenses(): Promise<Expense[]> {
-  const { data } = await api.get<Expense[]>("/expenses");
+export async function listExpenses(filters?: ExpenseFilters): Promise<Expense[]> {
+  const { data } = await api.get<Expense[]>("/expenses", { params: filters });
   return data;
 }
 
@@ -28,6 +37,20 @@ export async function updateExpense(
 
 export async function deleteExpense(id: string): Promise<void> {
   await api.delete(`/expenses/${id}`);
+}
+
+export async function uploadReceipt(
+  id: string,
+  file: File,
+): Promise<{ receiptUrl: string }> {
+  const form = new FormData();
+  form.append("receipt", file);
+  const { data } = await api.post<{ receiptUrl: string }>(
+    `/expenses/${id}/receipt`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return data;
 }
 
 export async function listLoans(): Promise<Loan[]> {

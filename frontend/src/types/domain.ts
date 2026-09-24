@@ -50,6 +50,8 @@ export interface Expense {
   categoryId?: string;
   memberId?: string;
   receiptUrl?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface Loan {
